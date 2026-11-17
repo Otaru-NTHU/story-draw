@@ -61,6 +61,7 @@
     <section id="sec-input" class="card">
       <h2>① 填你的七個元素</h2>
       <p class="small">你填的東西會進全班的籤筒，抽籤時會被別人抽到；你也會抽到別人的。填得越具體、越怪，全班越好玩。</p>
+      <div id="i-wait" class="card gold hidden"><b>登入完成。</b>等老師開放第一題，這裡會自動出現。</div>
       <div id="input-form"></div>
       <div class="err" id="i-err"></div>
       <div class="row" style="margin-top:12px"><button id="b-save-el">儲存元素</button><span class="small" id="i-note"></span></div>
@@ -159,12 +160,25 @@ auth.onAuthStateChanged(async u=>{
 /* ---------- 畫面 ---------- */
 function buildInputForm(){
   const el=(meDoc&&meDoc.elements)||{};
-  $("input-form").innerHTML = ORDER.map(k=>{
-    if(k==="tech"){
-      return `<label for="e-${k}">${FIELDS[k].k}</label><select id="e-${k}"><option value="">請選一個</option>${TECHS.map(t=>`<option ${el[k]===t?"selected":""}>${esc(t)}</option>`).join("")}</select><div class="hint">${FIELDS[k].hint}</div>`;
-    }
-    return `<label for="e-${k}">${FIELDS[k].k}</label><input id="e-${k}" type="text" maxlength="30" value="${esc(el[k]||"")}"><div class="hint">${FIELDS[k].hint}</div>`;
+  $("input-form").innerHTML = ORDER.map((k,i)=>{
+    const inner = k==="tech"
+      ? `<select id="e-${k}"><option value="">請選一個</option>${TECHS.map(t=>`<option ${el[k]===t?"selected":""}>${esc(t)}</option>`).join("")}</select>`
+      : `<input id="e-${k}" type="text" maxlength="30" value="${esc(el[k]||"")}">`;
+    return `<div class="fwrap" data-k="${k}"><label for="e-${k}">第 ${i+1} 題　${FIELDS[k].k} <span class="saved small" id="sv-${k}"></span></label>${inner}<div class="hint">${FIELDS[k].hint}</div></div>`;
   }).join("");
+  ORDER.forEach(k=>{ const e=$("e-"+k); e.addEventListener("change",()=>saveField(k)); if(e.tagName==="INPUT") e.addEventListener("blur",()=>saveField(k)); });
+}
+async function saveField(k){
+  if(!me) return;
+  const v=($("e-"+k).value||"").trim(); const prev=(meDoc&&meDoc.elements&&meDoc.elements[k])||"";
+  if(v===prev) return;
+  const el=Object.assign({},(meDoc&&meDoc.elements)||{},{[k]:v});
+  const ready=ORDER.every(x=>el[x]);
+  try{
+    await stuCol.doc(me.uid).set({ elements:{[k]:v}, elementsAt: firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
+    await pubCol.doc(me.uid).set({ filled:{[k]:!!v}, ready },{merge:true});
+    $("sv-"+k).textContent=v?"✓ 已存":""; 
+  }catch(e){ $("i-err").textContent="儲存失敗："+e.message; }
 }
 let formBuilt=false;
 let profileChecked=false;
@@ -193,6 +207,11 @@ function render(){
 
   // ① 填元素：沒填完一律顯示；填完後，抽籤開始前還能改
   if(!formBuilt){ buildInputForm(); formBuilt=true; }
+  // 老師一題一題開放；沒有 openFields 設定就全部顯示
+  const open = sess && Array.isArray(sess.openFields) ? sess.openFields : null;
+  document.querySelectorAll(".fwrap").forEach(w=>{ w.classList.toggle("hidden", !!open && !open.includes(w.dataset.k)); });
+  const anyOpen = !open || open.length>0;
+  $("i-wait").classList.toggle("hidden", anyOpen);
   const showInput = !hasEl || (!locked && Object.keys(drawn).length===0);
   $("sec-input").classList.toggle("hidden", !showInput);
   if(locked && !hasEl){ $("i-note").textContent="抽籤已開始；你存好之後老師會幫你補抽。"; }
@@ -254,7 +273,8 @@ $("b-save-el").onclick=async()=>{
   $("b-save-el").disabled=true;
   try{
     await stuCol.doc(me.uid).set({ elements: el, elementsAt: firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
-    await pubCol.doc(me.uid).set({ ready:true },{merge:true});
+    const filled={}; ORDER.forEach(k=>filled[k]=true);
+    await pubCol.doc(me.uid).set({ ready:true, filled },{merge:true});
     toast("元素已存進籤筒");
   }
   catch(e){ err.textContent="儲存失敗："+e.message; }

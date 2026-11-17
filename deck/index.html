@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>W11 故事抽籤 投影</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;800&display=swap" rel="stylesheet">
+<title>故事抽籤 投影</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@600;800&display=swap" rel="stylesheet">
 <style>
-:root{ --ink:#F1ECF7; --muted:#A79FC0; --primary:#B8AEE0; --accent:#F08EA3; --gold:#F6B94E; --bg:#1B1627; --card:#262036; --line:#3A3250;
+:root{ --ink:#F1ECF7; --muted:#A79FC0; --primary:#B8AEE0; --accent:#F08EA3; --gold:#F6B94E; --bg:#1B1627; --card:#262036; --line:#3A3250; --ok:#5FC79C;
   --display:"Noto Serif TC",serif; --body:"Noto Sans TC","Microsoft JhengHei",sans-serif; color-scheme:dark; }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden}
+body{background:radial-gradient(120vmin 80vmin at 80% -10%,#3a2d5c 0%,transparent 60%),radial-gradient(90vmin 70vmin at -10% 110%,#4a2538 0%,transparent 60%),var(--bg)}
 .stage{position:fixed;inset:0;display:grid;place-items:center}
 .slide{width:min(100vw,177.78vh);height:min(56.25vw,100vh);padding:6vmin 7vmin;display:none;flex-direction:column;justify-content:center;position:relative}
 .slide.on{display:flex}
@@ -20,49 +21,97 @@ h2{font-family:var(--display);font-size:6vmin;margin:0 0 3vmin;color:var(--prima
 ul.b{list-style:none;padding:0;margin:0;font-size:3.6vmin;line-height:1.75}
 ul.b li{padding-left:3.2vmin;position:relative;margin:.6vmin 0}
 ul.b li::before{content:"";position:absolute;left:0;top:1.55vmin;width:1.4vmin;height:1.4vmin;border-radius:50%;background:var(--accent)}
-.eg{color:var(--muted);font-size:.8em}
-.aside{margin-top:3.5vmin;padding:1.6vmin 2.4vmin;border-left:.6vmin solid var(--gold);background:var(--card);font-size:2.8vmin;color:var(--ink)}
-table.ag{border-collapse:collapse;font-size:3.4vmin}
-table.ag td{padding:1.1vmin 2vmin;border-bottom:1px solid var(--line)}
-table.ag td:first-child{color:var(--gold);font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
-.qr{display:grid;grid-template-columns:auto 1fr;gap:6vmin;align-items:center}
-.qr .code{background:#fff;padding:2vmin;border-radius:2vmin;width:38vmin;height:38vmin;display:grid;place-items:center}
-.qr .code img,.qr .code canvas{width:34vmin;height:34vmin}
-.url{font-family:ui-monospace,Menlo,monospace;font-size:3vmin;color:var(--gold);margin-top:2vmin;word-break:break-all}
-.switch{text-align:center}
-.switch .big{font-size:22vmin;line-height:1}
-.anime .head{display:flex;align-items:baseline;gap:2.5vmin;flex-wrap:wrap}
-.anime .num{font-family:var(--display);font-size:5vmin;color:var(--gold)}
-.anime h2{margin:0}
-.anime .jp{font-size:3vmin;color:var(--muted)}
-.anime .year{font-family:var(--display);font-size:7vmin;color:var(--accent);margin-left:auto}
-.anime .meta{font-size:2.6vmin;color:var(--muted);margin:1vmin 0 3vmin}
-.anime .ask{margin-top:3.5vmin;padding:1.6vmin 2.4vmin;border-radius:1.5vmin;background:var(--card);border:1px solid var(--line);font-size:3vmin}
-.anime .ask::before{content:"看片任務　";color:var(--gold);font-weight:700}
+.aside{margin-top:3.5vmin;padding:1.6vmin 2.4vmin;border-left:.6vmin solid var(--gold);background:var(--card);font-size:2.8vmin}
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:5vmin;align-items:start;height:100%}
+.qr .code{background:#fff;padding:2vmin;border-radius:2vmin;width:36vmin;height:36vmin;display:grid;place-items:center}
+.qr .code img,.qr .code canvas{width:32vmin;height:32vmin}
+.url{font-family:ui-monospace,Menlo,monospace;font-size:2.8vmin;color:var(--gold);margin-top:2vmin;word-break:break-all}
+.switch{text-align:center}.switch .big{font-size:22vmin;line-height:1}
+.live{background:var(--card);border:1px solid var(--line);border-radius:2vmin;padding:2.5vmin 3vmin;min-height:40vmin;display:flex;flex-direction:column}
+.live .num{font-family:var(--display);font-size:11vmin;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+.live .num small{font-size:3.5vmin;color:var(--muted);font-family:var(--body)}
+.live .lab{font-size:2.4vmin;color:var(--muted);margin:1vmin 0 1.5vmin}
+.chips{display:flex;flex-wrap:wrap;gap:.9vmin;overflow:hidden;align-content:flex-start}
+.chip{font-size:2vmin;padding:.5vmin 1.4vmin;border-radius:999px;border:1px solid var(--line);color:var(--muted);transition:all .4s}
+.chip.ok{border-color:var(--ok);color:var(--ink);background:rgba(95,199,156,.14)}
+.chip.new{animation:chipin .5s ease-out}
+@keyframes chipin{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+.field .no{font-family:var(--display);font-size:3.2vmin;color:var(--gold)}
+.field h2{font-size:8vmin;margin:0 0 2vmin}
+.field .review{font-size:3.2vmin;line-height:1.7;margin-bottom:2.5vmin}
+.field .ex{font-size:2.5vmin;color:var(--muted);line-height:1.7;padding-left:2.4vmin;border-left:.4vmin solid var(--line)}
+.field .tip{margin-top:2.5vmin;font-size:2.6vmin;color:var(--accent)}
+.draw h2{font-size:5vmin;margin:0}
+.draw .head{display:flex;align-items:baseline;gap:3vmin;margin-bottom:2vmin}
+.draw .fx{font-size:2.4vmin;color:var(--muted)}
+.draw button{margin-left:auto;font:inherit;font-weight:700;font-size:2.8vmin;padding:1.2vmin 3.5vmin;border-radius:999px;border:0;background:var(--accent);color:#fff;cursor:pointer}
+.draw button:disabled{opacity:.35;cursor:default}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(17vmin,1fr));gap:1.2vmin;align-content:start;overflow:hidden;flex:1;perspective:120vmin}
+.cardx{background:var(--card);border:1px solid var(--line);border-radius:1.4vmin;padding:1.2vmin 1.4vmin;min-height:9vmin;position:relative;transform-style:preserve-3d;transition:transform .6s}
+.cardx .nk{font-size:1.8vmin;color:var(--muted);margin-bottom:.4vmin;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cardx .vl{font-size:2.3vmin;font-weight:700;line-height:1.35;min-height:3.2vmin;word-break:break-all}
+.cardx.wait .vl{color:var(--line)}
+.cardx.roll .vl{color:var(--accent);letter-spacing:.06em}
+/* 效果 */
+.fx-slot .cardx.hit{animation:slotstop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes slotstop{0%{transform:translateY(-1.5vmin)}100%{transform:none}}
+.fx-flip .cardx.back{transform:rotateY(180deg)} .fx-flip .cardx.back .vl,.fx-flip .cardx.back .nk{visibility:hidden}
+.fx-flip .cardx.back::after{content:"？";position:absolute;inset:0;display:grid;place-items:center;font-size:5vmin;color:var(--gold);transform:rotateY(180deg)}
+.fx-cascade .cardx.hide{transform:scale(0);opacity:0} .fx-cascade .cardx.pop{animation:pop .55s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.fx-glitch .cardx.g .vl{animation:glitch .12s steps(2) infinite}
+@keyframes glitch{0%{clip-path:inset(0 0 60% 0);transform:translateX(-.4vmin)}50%{clip-path:inset(40% 0 0 0);transform:translateX(.4vmin)}100%{clip-path:inset(20% 0 30% 0);transform:none}}
+.fx-gold .cardx.hit{animation:gold 1.2s ease-out;border-color:var(--gold)}
+.fx-gold .cardx.hit .vl{background:linear-gradient(90deg,#fff6d5,#F6B94E,#fff6d5);-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes gold{0%{box-shadow:0 0 0 0 rgba(246,185,78,.9)}100%{box-shadow:0 0 6vmin 2vmin rgba(246,185,78,0)}}
+.fx-spot .cardx{opacity:.18;transition:opacity .4s,transform .4s} .fx-spot .cardx.lit{opacity:1;transform:scale(1.04)} .fx-spot.done .cardx{opacity:1;transform:none}
 .foot{position:absolute;left:7vmin;right:7vmin;bottom:3vmin;display:flex;justify-content:space-between;font-size:1.9vmin;color:var(--muted)}
 .bar{position:fixed;left:0;bottom:0;height:.6vmin;background:var(--accent);transition:width .3s}
+canvas#confetti{position:fixed;inset:0;pointer-events:none}
+#login{position:fixed;right:2vmin;top:2vmin;background:var(--card);border:1px solid var(--line);border-radius:1.5vmin;padding:1.5vmin;font-size:1.8vmin;display:none;gap:.8vmin;align-items:center}
+#login input{font:inherit;padding:.6vmin 1vmin;border-radius:.8vmin;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:18vmin}
+#login button{font:inherit;padding:.6vmin 1.4vmin;border-radius:.8vmin;border:0;background:var(--primary);color:#1B1627;cursor:pointer}
+#who{position:fixed;right:2vmin;top:2vmin;font-size:1.6vmin;color:var(--muted)}
 </style>
 </head>
 <body>
 <div class="stage" id="stage"></div>
+<canvas id="confetti"></canvas>
 <div class="bar" id="bar"></div>
+<form id="login"><span>老師登入</span><input id="le" type="email" placeholder="Email"><input id="lp" type="password" placeholder="密碼"><button>登入</button></form>
+<div id="who"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script src="../common.js"></script>
 <script src="deck.js"></script>
 <script>
-const D=window.DECK, S=D.slides, stage=document.getElementById("stage");
+const D=window.DECK, S=D.slides, F=D.fields, stage=document.getElementById("stage");
+let sess={}, pub=[], students=[], isTeacher=false;
 const url=u=>u==="@student"?D.studentUrl:u==="@board"?D.boardUrl:u;
+const DEC="龍貓刀夜雨星海鍵月光影火鏡夢塔門鐘花船鳥風雪城書鈴傘箱砂島";
+const decoy=n=>{let s="";for(let i=0;i<n;i++)s+=DEC[Math.floor(Math.random()*DEC.length)];return s;};
+
+/* ---------- 投影片 ---------- */
 function render(){
   stage.innerHTML=S.map((s,i)=>{
-    let body="";
+    let body="", cls="";
     if(s.type==="cover") body=`<div class="kicker">${s.kicker}</div><h1>${s.title}</h1><div class="sub">${s.sub||""}</div>`;
-    else if(s.type==="agenda") body=`<h2>${s.title}</h2><table class="ag">${s.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>`;
     else if(s.type==="content") body=`<h2>${s.title}</h2><ul class="b">${s.bullets.map(b=>`<li>${b}</li>`).join("")}</ul>${s.aside?`<div class="aside">${s.aside}</div>`:""}`;
-    else if(s.type==="qr") body=`<h2>${s.title}</h2><div class="qr"><div class="code" id="qr${i}"></div><div><ul class="b">${s.steps.map(b=>`<li>${b}</li>`).join("")}</ul><div class="url">${url(s.url)}</div></div></div>`;
+    else if(s.type==="qr"){ cls="qr"; body=`<h2>${s.title}</h2><div class="two"><div style="display:flex;gap:4vmin;align-items:center"><div class="code" id="qr${i}"></div><div><ul class="b" style="font-size:2.6vmin">${s.steps.map(b=>`<li>${b}</li>`).join("")}</ul><div class="url">${url(s.url)}</div></div></div>
+      <div class="live"><div class="num"><span data-live="count-all">0</span><small> 人已登入</small></div><div class="lab">填好元素的會變綠</div><div class="chips" data-live="chips-all"></div></div></div>`; }
+    else if(s.type==="field"){ cls="field"; const f=F[s.key], no=Object.keys(F).indexOf(s.key)+1;
+      body=`<div class="two"><div><div class="no">第 ${no} 題 ／ 7</div><h2>${f.title}</h2><div class="review">${f.review}</div><div class="ex">${f.examples.map(e=>`<div>${e}</div>`).join("")}</div><div class="tip">✎ ${f.tip}</div></div>
+      <div class="live"><div class="num"><span data-live="count-${s.key}">0</span><small> / <span data-live="count-all">0</span> 已填</small></div><div class="lab">還沒填的</div><div class="chips" data-live="missing-${s.key}"></div></div></div>`; }
+    else if(s.type==="draw"){ cls="draw fx-"+F[s.key].effect; const f=F[s.key], no=Object.keys(F).indexOf(s.key)+1;
+      body=`<div class="head"><span class="no" style="color:var(--gold);font-family:var(--display);font-size:3vmin">抽籤 ${no} ／ 7</span><h2>${f.title}</h2><span class="fx">${f.effectName}</span><button data-draw="${s.key}" disabled>開獎</button></div><div class="grid" data-grid="${s.key}"></div>`; }
     else if(s.type==="switch") body=`<div class="switch"><div class="big">${s.big}</div><h2>${s.title}</h2><div class="sub">${s.sub}</div><div class="url">${url(s.url)}</div></div>`;
-    else if(s.type==="anime") body=`<div class="anime"><div class="head"><span class="num">${s.num}</span><h2>${s.title}</h2><span class="jp">${s.jp}</span><span class="year">${s.year}</span></div><div class="meta">${s.meta}</div><ul class="b">${s.points.map(b=>`<li>${b}</li>`).join("")}</ul><div class="ask">${s.ask}</div></div>`;
-    return `<section class="slide" data-i="${i}">${body}<div class="foot"><span>${D.title}</span><span>${i+1} / ${S.length}</span></div></section>`;
+    return `<section class="slide ${cls}" data-i="${i}">${body}<div class="foot"><span>${D.title}</span><span>${i+1} / ${S.length}</span></div></section>`;
   }).join("");
-  S.forEach((s,i)=>{ if(s.type==="qr"){ try{ new QRCode(document.getElementById("qr"+i),{text:url(s.url),width:512,height:512,correctLevel:QRCode.CorrectLevel.M}); }catch(e){ document.getElementById("qr"+i).textContent="QR 載入失敗，請用網址"; } } });
+  S.forEach((s,i)=>{ if(s.type==="qr"){ try{ new QRCode(document.getElementById("qr"+i),{text:url(s.url),width:512,height:512,correctLevel:QRCode.CorrectLevel.M}); }catch(e){} } });
+  document.querySelectorAll("button[data-draw]").forEach(b=>b.onclick=()=>drawRound(b.dataset.draw));
 }
 let cur=0; const ch=("BroadcastChannel" in window)?new BroadcastChannel("storydeck"):null;
 function go(i,silent){
@@ -71,18 +120,120 @@ function go(i,silent){
   document.getElementById("bar").style.width=((i+1)/S.length*100)+"%";
   if(location.hash!=="#"+(i+1)) history.replaceState(null,"","#"+(i+1));
   if(!silent){ ch&&ch.postMessage({i}); try{localStorage.setItem("storydeck-i",String(i));}catch(e){} }
+  onEnter(S[i]);
 }
 ch&&(ch.onmessage=e=>{ if(typeof e.data.i==="number"&&e.data.i!==cur) go(e.data.i,true); });
 window.addEventListener("storage",e=>{ if(e.key==="storydeck-i"){ const i=+e.newValue; if(i!==cur) go(i,true); } });
 document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT") return;
   if(["ArrowRight","ArrowDown","PageDown"," ","Enter"].includes(e.key)){ e.preventDefault(); go(cur+1); }
   else if(["ArrowLeft","ArrowUp","PageUp","Backspace"].includes(e.key)){ e.preventDefault(); go(cur-1); }
   else if(e.key==="Home") go(0); else if(e.key==="End") go(S.length-1);
   else if(e.key==="f"||e.key==="F"){ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{}); }
 });
-let tx=null; document.addEventListener("touchstart",e=>tx=e.touches[0].clientX); document.addEventListener("touchend",e=>{ if(tx==null) return; const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50) go(cur+(dx<0?1:-1)); tx=null; });
-document.addEventListener("click",e=>{ if(e.clientX>innerWidth*0.7) go(cur+1); else if(e.clientX<innerWidth*0.3) go(cur-1); });
+document.addEventListener("click",e=>{ if(e.target.closest("button,form,input")) return; if(e.clientX>innerWidth*0.7) go(cur+1); else if(e.clientX<innerWidth*0.3) go(cur-1); });
+
 render(); go(Math.max(0,(parseInt(location.hash.slice(1),10)||1)-1),true);
+
+/* ---------- 即時資料 ---------- */
+try{ auth.onAuthStateChanged(u=>{
+  document.getElementById("login").style.display=u?"none":"flex";
+  document.getElementById("who").textContent=u?(u.email===window.TEACHER_EMAIL?"老師模式":"檢視模式"):"";
+  if(!u) return;
+  isTeacher = u.email===window.TEACHER_EMAIL;
+  sessRef.onSnapshot(s=>{ sess=s.exists?s.data():{}; renderLive(); onEnter(S[cur]); });
+  pubCol.onSnapshot(q=>{ pub=q.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>(a.nick||"").localeCompare(b.nick||"","zh-Hant")); renderLive(); renderGrids(); });
+  if(isTeacher) stuCol.onSnapshot(q=>{ students=q.docs.map(d=>({uid:d.id,...d.data()})); });
+}); }catch(e){ console.warn("Firebase 未載入", e); }
+document.getElementById("login").onsubmit=async e=>{ e.preventDefault(); try{ await auth.signInWithEmailAndPassword($("le").value.trim(),$("lp").value); }catch(err){ alert("登入失敗"); } };
+
+function renderLive(){
+  document.querySelectorAll('[data-live="count-all"]').forEach(el=>el.textContent=pub.length);
+  document.querySelectorAll('[data-live="chips-all"]').forEach(el=>{ el.innerHTML=pub.map(p=>`<span class="chip ${p.ready?"ok":""}">${esc(p.nick||"?")}</span>`).join(""); });
+  ORDER.forEach(k=>{
+    const done=pub.filter(p=>p.filled&&p.filled[k]), miss=pub.filter(p=>!(p.filled&&p.filled[k]));
+    document.querySelectorAll(`[data-live="count-${k}"]`).forEach(el=>el.textContent=done.length);
+    document.querySelectorAll(`[data-live="missing-${k}"]`).forEach(el=>{ el.innerHTML=miss.length?miss.map(p=>`<span class="chip">${esc(p.nick||"?")}</span>`).join(""):`<span class="chip ok">全部填好了</span>`; });
+  });
+}
+/* 翻頁時的自動動作（只有老師會寫入） */
+async function onEnter(s){
+  if(!isTeacher||!s) return;
+  try{
+    if(s.type==="field"){ const open=sess.openFields||[]; if(!open.includes(s.key)) await sessRef.set({phase:"input", openFields:[...open,s.key]},{merge:true}); else if(sess.phase!=="input"&&!sess.inputLocked) await sessRef.set({phase:"input"},{merge:true}); }
+    if(s.type==="qr" && !sess.phase) await sessRef.set({phase:"input", openFields:[]},{merge:true});
+    if(s.type==="draw" && !sess.inputLocked) await sessRef.set({inputLocked:true, phase:"draw"},{merge:true});
+    if(s.phase==="write" && sess.phase!=="write") await sessRef.set({phase:"write"},{merge:true});
+  }catch(e){ console.warn(e); }
+  if(s.type==="draw") renderGrids();
+}
+
+/* ---------- 抽籤 ---------- */
+const shown={}; // uid+k 已揭曉
+function renderGrids(){
+  document.querySelectorAll("[data-grid]").forEach(g=>{
+    const k=g.dataset.grid, rows=pub.filter(p=>p.ready);
+    rows.forEach((p,i)=>{
+      let c=g.querySelector(`[data-uid="${p.uid}"]`);
+      if(!c){ c=document.createElement("div"); c.className="cardx wait"; c.dataset.uid=p.uid; c.innerHTML=`<div class="nk">${esc(p.nick)}</div><div class="vl">·</div>`; g.appendChild(c); }
+      const v=p.drawn&&p.drawn[k];
+      if(v && !shown[p.uid+k] && !g.dataset.animating){ c.classList.remove("wait"); c.querySelector(".vl").textContent=v; shown[p.uid+k]=1; }
+    });
+    const btn=document.querySelector(`button[data-draw="${k}"]`);
+    if(btn){ const pending=students.filter(s=>s.elements&&s.elements[k]&&!(s.drawn&&s.drawn[k])).length; btn.disabled=!isTeacher||pending===0||!!g.dataset.animating; btn.textContent=pending===0?"已抽完":(rows.some(p=>p.drawn&&p.drawn[k])?`補抽 ${pending} 人`:"開獎"); }
+  });
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function derange(n){ if(n<2) return [0]; for(let t=0;t<200;t++){ const p=shuffle([...Array(n).keys()]); if(p.every((v,i)=>v!==i)) return p; } return [...Array(n).keys()].map(i=>(i+1)%n); }
+async function drawRound(k){
+  const g=document.querySelector(`[data-grid="${k}"]`), fx=F[k].effect;
+  const elig=students.filter(s=>s.elements&&s.elements[k]&&!(s.drawn&&s.drawn[k]));
+  if(!elig.length) return;
+  g.dataset.animating="1"; renderGrids();
+  await sessRef.set({phase:"draw", inputLocked:true, rolling:k},{merge:true});
+  const cards=[...g.querySelectorAll(".cardx")].filter(c=>elig.some(s=>s.uid===c.dataset.uid));
+  // 開獎前的動態
+  const pre=preFX[fx](cards);
+  await sleep(2600);
+  // 發牌
+  const perm=derange(elig.length), batch=dbf.batch(), val={};
+  elig.forEach((s,i)=>{ const from=elig[perm[i]]; val[s.uid]=from.elements[k]; batch.set(stuCol.doc(s.uid),{drawn:{[k]:val[s.uid]},drawnFrom:{[k]:from.nick}},{merge:true}); batch.set(pubCol.doc(s.uid),{drawn:{[k]:val[s.uid]}},{merge:true}); });
+  await batch.commit();
+  await sessRef.set({rolling:null, drawRound:Math.max(sess.drawRound||0,ORDER.indexOf(k)+1)},{merge:true});
+  pre&&pre();
+  await revealFX[fx](cards,val);
+  cards.forEach(c=>{ shown[c.dataset.uid+k]=1; c.classList.remove("wait"); });
+  delete g.dataset.animating; renderGrids();
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const setV=(c,t)=>{ c.classList.remove("wait"); c.querySelector(".vl").textContent=t; };
+/* 開獎前 */
+const preFX={
+  slot:cs=>{ cs.forEach(c=>c.classList.add("roll")); const iv=setInterval(()=>cs.forEach(c=>c.querySelector(".vl").textContent=decoy(4)),70); return ()=>{clearInterval(iv); cs.forEach(c=>c.classList.remove("roll"));}; },
+  flip:cs=>{ cs.forEach(c=>c.classList.add("back")); return null; },
+  type:cs=>{ cs.forEach(c=>c.classList.add("roll")); const iv=setInterval(()=>cs.forEach(c=>c.querySelector(".vl").textContent="▍"),400); return ()=>{clearInterval(iv); cs.forEach(c=>c.classList.remove("roll"));}; },
+  cascade:cs=>{ cs.forEach(c=>c.classList.add("hide")); return null; },
+  glitch:cs=>{ cs.forEach(c=>{c.classList.add("g","roll");}); const iv=setInterval(()=>cs.forEach(c=>c.querySelector(".vl").textContent=decoy(5)),90); return ()=>{clearInterval(iv); cs.forEach(c=>c.classList.remove("roll"));}; },
+  gold:cs=>{ cs.forEach(c=>c.classList.add("roll")); const iv=setInterval(()=>cs.forEach(c=>c.querySelector(".vl").textContent="✦".repeat(1+Math.floor(Math.random()*4))),200); return ()=>{clearInterval(iv); cs.forEach(c=>c.classList.remove("roll"));}; },
+  spotlight:cs=>{ return null; }
+};
+/* 揭曉 */
+const revealFX={
+  slot:async(cs,v)=>{ for(const c of cs){ setV(c,v[c.dataset.uid]); c.classList.add("hit"); await sleep(45); } },
+  flip:async(cs,v)=>{ for(const c of cs){ setV(c,v[c.dataset.uid]); c.classList.remove("back"); await sleep(60); } },
+  type:async(cs,v)=>{ const L=Math.max(...cs.map(c=>v[c.dataset.uid].length)); cs.forEach(c=>c.classList.remove("wait")); for(let n=1;n<=L;n++){ cs.forEach(c=>c.querySelector(".vl").textContent=v[c.dataset.uid].slice(0,n)+(n<v[c.dataset.uid].length?"▍":"")); await sleep(110); } },
+  cascade:async(cs,v)=>{ confetti(); for(const c of cs){ setV(c,v[c.dataset.uid]); c.classList.remove("hide"); c.classList.add("pop"); await sleep(50); } },
+  glitch:async(cs,v)=>{ cs.forEach(c=>setV(c,v[c.dataset.uid])); await sleep(700); cs.forEach(c=>c.classList.remove("g")); },
+  gold:async(cs,v)=>{ for(const c of cs){ setV(c,v[c.dataset.uid]); c.classList.add("hit"); await sleep(70); } confetti("#F6B94E"); },
+  spotlight:async(cs,v)=>{ const g=cs[0].parentElement; for(const c of cs){ c.classList.add("lit"); setV(c,v[c.dataset.uid]); await sleep(90); } await sleep(400); g.classList.add("done"); }
+};
+/* 彩帶 */
+function confetti(color){
+  const cv=document.getElementById("confetti"), x=cv.getContext("2d"); cv.width=innerWidth; cv.height=innerHeight;
+  const cols=color?[color,"#fff"]:["#F08EA3","#F6B94E","#B8AEE0","#5FC79C","#fff"];
+  const ps=Array.from({length:160},()=>({x:innerWidth/2,y:innerHeight*0.35,vx:(Math.random()-.5)*18,vy:-Math.random()*16-4,r:4+Math.random()*5,c:cols[Math.floor(Math.random()*cols.length)],a:Math.random()*6}));
+  let t=0; (function step(){ x.clearRect(0,0,cv.width,cv.height); ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.45;p.a+=.2; x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/2,p.r,p.r*.6);x.restore();}); if(++t<110) requestAnimationFrame(step); else x.clearRect(0,0,cv.width,cv.height); })();
+}
 </script>
 </body>
 </html>

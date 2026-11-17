@@ -50,7 +50,7 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family
 const S=window.DECK.slides; let cur=0;
 const ch=("BroadcastChannel" in window)?new BroadcastChannel("storydeck"):null;
 const strip=s=>String(s||"").replace(/<[^>]+>/g,"");
-function title(s){ return strip(s.title); }
+function title(s){ if(s.type==="field") return "填題："+window.DECK.fields[s.key].title; if(s.type==="draw") return "抽籤："+window.DECK.fields[s.key].title+"（"+window.DECK.fields[s.key].effectName+"）"; return strip(s.title); }
 function show(i,silent){
   i=Math.max(0,Math.min(S.length-1,i)); cur=i; const s=S[i];
   document.getElementById("pos").textContent=`${i+1} / ${S.length}`;
