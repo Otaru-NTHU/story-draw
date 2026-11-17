@@ -80,7 +80,7 @@
 <script src="firebase-config.js"></script>
 <script src="common.js"></script>
 <script>
-let sess={phase:"input"}, students=[], scores={};
+let sess={phase:"input"}, students=[], scores={}, scoring=false;
 function log(m){ const l=$("log"); l.textContent=(new Date().toLocaleTimeString()+"  "+m+"\n")+l.textContent; }
 $("b-login").onclick=async()=>{ try{ await auth.signInWithEmailAndPassword($("l-email").value.trim(),$("l-pw").value); }catch(e){ $("l-err").textContent="登入失敗："+e.message; } };
 auth.onAuthStateChanged(u=>{
@@ -180,7 +180,8 @@ async function gemini(text){
   for(const m of tryList){
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text}]}],generationConfig:{responseMimeType:"application/json",temperature:0.3}})});
     if(r.ok){ if(m!==model){ $("gmodel").value=m; log(`模型改用 ${m}`); } const j=await r.json(); return JSON.parse(j.candidates[0].content.parts[0].text); }
-    lastErr="Gemini "+r.status+" "+(await r.text()).slice(0,160);
+    lastErr="Gemini "+r.status+" "+(await r.text()).slice(0,120);
+    if(r.status===429||r.status===503){ const e=new Error(lastErr); e.retry=true; throw e; }
     if(r.status!==404) break; // 不是模型問題就不要再換
   }
   throw new Error(lastErr);
@@ -198,11 +199,16 @@ async function scoreAll(all){
   if(!$("gkey").value.trim()){ toast("先填 Gemini API key，或用匯出／匯入"); return; }
   const todo=students.filter(s=>s.story&&s.story.title&&(all||!scores[s.uid]));
   log(`開始評分 ${todo.length} 人`); let ok=0;
+  if(scoring){ toast("已經在跑了，不要重複按"); return; } scoring=true;
   for(const s of todo){
-    try{ const o=await gemini(RUBRIC+"\n\n"+stuPayload(s)); await scoreCol.doc(s.uid).set(normScore(o)); ok++; log(`✓ ${s.nick} ${normScore(o).score}`); }
-    catch(e){ log(`✗ ${s.nick}：${e.message}`); }
-    await new Promise(r=>setTimeout(r,400));
+    let done=false;
+    for(let t=0;t<5&&!done;t++){
+      try{ const o=await gemini(RUBRIC+"\n\n"+stuPayload(s)); const ns=normScore(o); await scoreCol.doc(s.uid).set(ns); ok++; done=true; log(`✓ ${s.nick} ${ns.score}`); }
+      catch(e){ if(e.retry&&t<4){ log(`⏳ ${s.nick}：額度滿，等 20 秒再試（${t+1}/4）`); await new Promise(r=>setTimeout(r,20000)); } else { log(`✗ ${s.nick}：${e.message}`); break; } }
+    }
+    await new Promise(r=>setTimeout(r,4000));
   }
+  scoring=false;
   toast(`評分完成 ${ok}/${todo.length}`); if(ok) await setSess({phase:"scored"});
 }
 $("b-score").onclick=()=>scoreAll(false);
