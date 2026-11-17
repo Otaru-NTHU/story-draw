@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W11 故事抽籤 投影</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{ --ink:#F1ECF7; --muted:#A79FC0; --primary:#B8AEE0; --accent:#F08EA3; --gold:#F6B94E; --bg:#1B1627; --card:#262036; --line:#3A3250;
+  --display:"Noto Serif TC",serif; --body:"Noto Sans TC","Microsoft JhengHei",sans-serif; color-scheme:dark; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden}
+.stage{position:fixed;inset:0;display:grid;place-items:center}
+.slide{width:min(100vw,177.78vh);height:min(56.25vw,100vh);padding:6vmin 7vmin;display:none;flex-direction:column;justify-content:center;position:relative}
+.slide.on{display:flex}
+.kicker{font-size:2.2vmin;letter-spacing:.14em;color:var(--muted);margin-bottom:1.5vmin}
+h1{font-family:var(--display);font-size:9vmin;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-family:var(--display);font-size:6vmin;margin:0 0 3vmin;color:var(--primary)}
+.sub{font-size:3.2vmin;color:var(--accent);margin-top:3vmin}
+ul.b{list-style:none;padding:0;margin:0;font-size:3.6vmin;line-height:1.75}
+ul.b li{padding-left:3.2vmin;position:relative;margin:.6vmin 0}
+ul.b li::before{content:"";position:absolute;left:0;top:1.55vmin;width:1.4vmin;height:1.4vmin;border-radius:50%;background:var(--accent)}
+.eg{color:var(--muted);font-size:.8em}
+.aside{margin-top:3.5vmin;padding:1.6vmin 2.4vmin;border-left:.6vmin solid var(--gold);background:var(--card);font-size:2.8vmin;color:var(--ink)}
+table.ag{border-collapse:collapse;font-size:3.4vmin}
+table.ag td{padding:1.1vmin 2vmin;border-bottom:1px solid var(--line)}
+table.ag td:first-child{color:var(--gold);font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.qr{display:grid;grid-template-columns:auto 1fr;gap:6vmin;align-items:center}
+.qr .code{background:#fff;padding:2vmin;border-radius:2vmin;width:38vmin;height:38vmin;display:grid;place-items:center}
+.qr .code img,.qr .code canvas{width:34vmin;height:34vmin}
+.url{font-family:ui-monospace,Menlo,monospace;font-size:3vmin;color:var(--gold);margin-top:2vmin;word-break:break-all}
+.switch{text-align:center}
+.switch .big{font-size:22vmin;line-height:1}
+.anime .head{display:flex;align-items:baseline;gap:2.5vmin;flex-wrap:wrap}
+.anime .num{font-family:var(--display);font-size:5vmin;color:var(--gold)}
+.anime h2{margin:0}
+.anime .jp{font-size:3vmin;color:var(--muted)}
+.anime .year{font-family:var(--display);font-size:7vmin;color:var(--accent);margin-left:auto}
+.anime .meta{font-size:2.6vmin;color:var(--muted);margin:1vmin 0 3vmin}
+.anime .ask{margin-top:3.5vmin;padding:1.6vmin 2.4vmin;border-radius:1.5vmin;background:var(--card);border:1px solid var(--line);font-size:3vmin}
+.anime .ask::before{content:"看片任務　";color:var(--gold);font-weight:700}
+.foot{position:absolute;left:7vmin;right:7vmin;bottom:3vmin;display:flex;justify-content:space-between;font-size:1.9vmin;color:var(--muted)}
+.bar{position:fixed;left:0;bottom:0;height:.6vmin;background:var(--accent);transition:width .3s}
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+<div class="bar" id="bar"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="deck.js"></script>
+<script>
+const D=window.DECK, S=D.slides, stage=document.getElementById("stage");
+const url=u=>u==="@student"?D.studentUrl:u==="@board"?D.boardUrl:u;
+function render(){
+  stage.innerHTML=S.map((s,i)=>{
+    let body="";
+    if(s.type==="cover") body=`<div class="kicker">${s.kicker}</div><h1>${s.title}</h1><div class="sub">${s.sub||""}</div>`;
+    else if(s.type==="agenda") body=`<h2>${s.title}</h2><table class="ag">${s.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}</table>`;
+    else if(s.type==="content") body=`<h2>${s.title}</h2><ul class="b">${s.bullets.map(b=>`<li>${b}</li>`).join("")}</ul>${s.aside?`<div class="aside">${s.aside}</div>`:""}`;
+    else if(s.type==="qr") body=`<h2>${s.title}</h2><div class="qr"><div class="code" id="qr${i}"></div><div><ul class="b">${s.steps.map(b=>`<li>${b}</li>`).join("")}</ul><div class="url">${url(s.url)}</div></div></div>`;
+    else if(s.type==="switch") body=`<div class="switch"><div class="big">${s.big}</div><h2>${s.title}</h2><div class="sub">${s.sub}</div><div class="url">${url(s.url)}</div></div>`;
+    else if(s.type==="anime") body=`<div class="anime"><div class="head"><span class="num">${s.num}</span><h2>${s.title}</h2><span class="jp">${s.jp}</span><span class="year">${s.year}</span></div><div class="meta">${s.meta}</div><ul class="b">${s.points.map(b=>`<li>${b}</li>`).join("")}</ul><div class="ask">${s.ask}</div></div>`;
+    return `<section class="slide" data-i="${i}">${body}<div class="foot"><span>${D.title}</span><span>${i+1} / ${S.length}</span></div></section>`;
+  }).join("");
+  S.forEach((s,i)=>{ if(s.type==="qr"){ try{ new QRCode(document.getElementById("qr"+i),{text:url(s.url),width:512,height:512,correctLevel:QRCode.CorrectLevel.M}); }catch(e){ document.getElementById("qr"+i).textContent="QR 載入失敗，請用網址"; } } });
+}
+let cur=0; const ch=("BroadcastChannel" in window)?new BroadcastChannel("storydeck"):null;
+function go(i,silent){
+  i=Math.max(0,Math.min(S.length-1,i)); cur=i;
+  document.querySelectorAll(".slide").forEach(el=>el.classList.toggle("on",+el.dataset.i===i));
+  document.getElementById("bar").style.width=((i+1)/S.length*100)+"%";
+  if(location.hash!=="#"+(i+1)) history.replaceState(null,"","#"+(i+1));
+  if(!silent){ ch&&ch.postMessage({i}); try{localStorage.setItem("storydeck-i",String(i));}catch(e){} }
+}
+ch&&(ch.onmessage=e=>{ if(typeof e.data.i==="number"&&e.data.i!==cur) go(e.data.i,true); });
+window.addEventListener("storage",e=>{ if(e.key==="storydeck-i"){ const i=+e.newValue; if(i!==cur) go(i,true); } });
+document.addEventListener("keydown",e=>{
+  if(["ArrowRight","ArrowDown","PageDown"," ","Enter"].includes(e.key)){ e.preventDefault(); go(cur+1); }
+  else if(["ArrowLeft","ArrowUp","PageUp","Backspace"].includes(e.key)){ e.preventDefault(); go(cur-1); }
+  else if(e.key==="Home") go(0); else if(e.key==="End") go(S.length-1);
+  else if(e.key==="f"||e.key==="F"){ document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen().catch(()=>{}); }
+});
+let tx=null; document.addEventListener("touchstart",e=>tx=e.touches[0].clientX); document.addEventListener("touchend",e=>{ if(tx==null) return; const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50) go(cur+(dx<0?1:-1)); tx=null; });
+document.addEventListener("click",e=>{ if(e.clientX>innerWidth*0.7) go(cur+1); else if(e.clientX<innerWidth*0.3) go(cur-1); });
+render(); go(Math.max(0,(parseInt(location.hash.slice(1),10)||1)-1),true);
+</script>
+</body>
+</html>
