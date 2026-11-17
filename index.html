@@ -45,6 +45,15 @@
 
   <div id="v-app" class="hidden">
     <div class="me"><span>你是 <b id="me-nick"></b>　<span class="phase" id="phase-chip">—</span></span><button id="b-out" class="ghost" style="padding:5px 10px;font-size:12px">登出</button></div>
+    <section id="sec-fix" class="card accent hidden">
+      <h2>補齊基本資料</h2>
+      <p class="small">帳號建好了，但基本資料沒存成功。再填一次就好。</p>
+      <label for="x-sid">學號</label><input id="x-sid" type="text" inputmode="numeric">
+      <label for="x-name">姓名</label><input id="x-name" type="text">
+      <label for="x-nick">暱稱</label><input id="x-nick" type="text" maxlength="12">
+      <div class="err" id="x-err"></div>
+      <div class="row" style="margin-top:12px"><button id="b-fix" class="accent">儲存</button></div>
+    </section>
     <div class="steps"><span id="s1"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span></div>
     <div class="small" style="margin-bottom:8px">① 填元素 → ② 抽籤 → ③ 寫大綱 → ④ 評分</div>
 
@@ -108,13 +117,23 @@ $("b-reg").onclick=async()=>{
   $("b-reg").disabled=true;
   try{
     const cred=await auth.createUserWithEmailAndPassword(email,pw);
-    const uid=cred.user.uid;
-    await stuCol.doc(uid).set({ sid, name, nick, email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-    await pubCol.doc(uid).set({ nick });
+    try{ sessionStorage.setItem("pendingProfile",JSON.stringify({sid,name,nick,email})); }catch(e){}
+    await writeProfile(cred.user.uid,{sid,name,nick,email});
   }catch(e){
     err.textContent = e.code==="auth/email-already-in-use" ? "這個 Email 已經註冊過，請切到「我有帳號」登入。" : (e.code==="auth/invalid-email" ? "Email 格式不對。" : "建立失敗："+e.message);
   }
   $("b-reg").disabled=false;
+};
+async function writeProfile(uid,p){
+  await stuCol.doc(uid).set({ sid:p.sid, name:p.name, nick:p.nick, email:p.email, createdAt: firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
+  await pubCol.doc(uid).set({ nick:p.nick },{merge:true});
+  try{ sessionStorage.removeItem("pendingProfile"); }catch(e){}
+}
+// 帳號建好但資料沒寫成功（例如網路閃斷）：登入後補寫
+$("b-fix").onclick=async()=>{
+  const p={sid:$("x-sid").value.trim(),name:$("x-name").value.trim(),nick:$("x-nick").value.trim(),email:me.email||""};
+  if(!p.sid||!p.name||!p.nick){ $("x-err").textContent="三欄都要填。"; return; }
+  try{ await writeProfile(me.uid,p); toast("資料已補齊"); }catch(e){ $("x-err").textContent="儲存失敗："+e.message; }
 };
 $("b-login").onclick=async()=>{
   const err=$("l-err"); err.textContent="";
@@ -132,7 +151,8 @@ auth.onAuthStateChanged(async u=>{
   if(!u){ $("v-auth").classList.remove("hidden"); $("v-app").classList.add("hidden"); return; }
   $("v-auth").classList.add("hidden"); $("v-app").classList.remove("hidden");
   unsubs.push(sessRef.onSnapshot(s=>{ sess=s.exists?s.data():{phase:"input"}; render(); }));
-  unsubs.push(stuCol.doc(u.uid).onSnapshot(s=>{ meDoc=s.exists?s.data():null; if(meDoc) { $("me-nick").textContent=meDoc.nick||""; } render(); }));
+  profileChecked=false;
+  unsubs.push(stuCol.doc(u.uid).onSnapshot(s=>{ meDoc=s.exists?s.data():null; profileChecked=!s.metadata.fromCache; if(meDoc) { $("me-nick").textContent=meDoc.nick||""; } render(); }));
   unsubs.push(scoreCol.doc(u.uid).onSnapshot(s=>{ scoreDoc=s.exists?s.data():null; render(); }, ()=>{}));
 });
 
@@ -147,8 +167,17 @@ function buildInputForm(){
   }).join("");
 }
 let formBuilt=false;
+let profileChecked=false;
 function render(){
   if(!me) return;
+  // 沒有學生資料 → 顯示補填卡，其餘先藏
+  const noProfile = meDoc===null && profileChecked;
+  $("sec-fix").classList.toggle("hidden", !noProfile);
+  if(noProfile){
+    ["sec-input","sec-draw","sec-write","sec-score","sec-reveal"].forEach(id=>$(id).classList.add("hidden"));
+    try{ const p=JSON.parse(sessionStorage.getItem("pendingProfile")||"null"); if(p && !$("x-sid").value){ $("x-sid").value=p.sid; $("x-name").value=p.name; $("x-nick").value=p.nick; } }catch(e){}
+    return;
+  }
   const phase=(sess&&sess.phase)||"input";
   $("phase-chip").textContent=PHASES[phase]||phase;
   const hasEl = !!(meDoc&&meDoc.elements&&ORDER.every(k=>meDoc.elements[k]));
