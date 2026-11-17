@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>故事抽籤 投影板</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body{overflow-x:hidden}
+  main{max-width:none;padding:18px 28px}
+  header{display:flex;justify-content:space-between;align-items:baseline}
+  header h1{font-size:28px}
+  .big{font-family:var(--display);font-size:64px;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);color:var(--muted);font-size:18px}
+  .chip.ready{border-color:var(--ok);color:var(--ink);background:rgba(95,199,156,.12)}
+  table.draw{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:17px}
+  table.draw th{font-size:13px;color:var(--muted);font-weight:600;text-align:left;padding:4px 8px}
+  table.draw th.now{color:var(--gold)}
+  table.draw td{padding:6px 8px;background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  table.draw td:first-child{border-left:1px solid var(--line);border-radius:10px 0 0 10px;font-weight:700;white-space:nowrap;color:var(--primary)}
+  table.draw td:last-child{border-right:1px solid var(--line);border-radius:0 10px 10px 0}
+  td.empty{color:var(--line)} td.rolling{color:var(--accent);letter-spacing:.06em}
+  td.hit{animation:flash .9s ease-out}
+  @keyframes flash{0%{background:var(--gold);color:#2E2547;transform:scale(1.03)}100%{background:var(--card);transform:scale(1)}}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .rank{border:2px solid var(--gold);border-radius:18px;padding:18px 22px;margin:14px 0;background:var(--card);animation:rise .6s ease-out}
+  .rank .no{font-family:var(--display);font-size:22px;color:var(--gold)}
+  .rank h3{font-family:var(--display);font-size:30px;margin:4px 0 6px;color:var(--ink)}
+  .rank .nick{font-size:16px;color:var(--muted)}
+  .rank .els{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .rank .els span{font-size:13px;padding:3px 10px;border-radius:999px;border:1px solid var(--line)}
+  .rank .els span.mg{border-color:var(--gold)} .rank .els span.tech{border-color:var(--accent)}
+  .rank .syn{font-size:17px;line-height:1.7;margin:8px 0}
+  .rank .why{font-size:14px;color:var(--muted)}
+  .rank .sc{float:right;font-family:var(--display);font-size:44px;color:var(--gold);font-variant-numeric:tabular-nums}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .login{max-width:420px;margin:40px auto}
+  @media (prefers-reduced-motion: reduce){ .rank{animation:none} td.hit{animation:none} }
+</style>
+</head>
+<body>
+<header>
+  <div><div class="kicker">動漫文化賞析 ・ 投影板</div><h1 id="h-title">故事抽籤</h1></div>
+  <div class="phase" id="phase-chip">—</div>
+</header>
+<main>
+  <div id="v-login" class="login card hidden">
+    <p>投影板需要登入（用老師帳號即可）。</p>
+    <label for="l-email">Email</label><input id="l-email" type="email">
+    <label for="l-pw">密碼</label><input id="l-pw" type="password">
+    <div class="err" id="l-err"></div>
+    <div class="row" style="margin-top:12px"><button id="b-login">登入</button></div>
+  </div>
+
+  <section id="s-input" class="hidden">
+    <div class="row" style="align-items:baseline;gap:18px"><span class="big" id="cnt-ready">0</span><span style="font-size:22px">/ <span id="cnt-all">0</span> 人已填好七個元素</span></div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section id="s-draw" class="hidden">
+    <div class="row" style="justify-content:space-between;margin-bottom:6px"><span id="draw-title" style="font-size:20px"></span><span class="small" id="draw-sub"></span></div>
+    <table class="draw"><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table>
+  </section>
+
+  <section id="s-reveal" class="hidden">
+    <div id="reveal"></div>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="common.js"></script>
+<script>
+let sess=null, pub=[], shown={}; // shown[uid+k]
+$("b-login").onclick=async()=>{ try{ await auth.signInWithEmailAndPassword($("l-email").value.trim(),$("l-pw").value); }catch(e){ $("l-err").textContent="登入失敗"; } };
+auth.onAuthStateChanged(u=>{
+  $("v-login").classList.toggle("hidden",!!u); if(!u) return;
+  sessRef.onSnapshot(s=>{ sess=s.exists?s.data():{phase:"input"}; render(); });
+  pubCol.onSnapshot(q=>{ pub=q.docs.map(d=>({uid:d.id,...d.data()})).sort((a,b)=>(a.nick||"").localeCompare(b.nick||"","zh-Hant")); render(); });
+});
+function render(){
+  if(!sess) return;
+  const phase=sess.phase||"input"; $("phase-chip").textContent=PHASES[phase]||phase;
+  $("s-input").classList.toggle("hidden",phase!=="input");
+  $("s-draw").classList.toggle("hidden",!(phase==="draw"||phase==="write"||phase==="scored"));
+  $("s-reveal").classList.toggle("hidden",phase!=="reveal");
+  if(phase==="input"){
+    const ready=pub.filter(p=>p.ready); $("cnt-ready").textContent=ready.length; $("cnt-all").textContent=pub.length;
+    $("chips").innerHTML=pub.map(p=>`<span class="chip ${p.ready?"ready":""}">${esc(p.nick||"?")}</span>`).join("");
+    $("h-title").textContent="大家正在把元素丟進籤筒";
+  }
+  if(phase==="draw"||phase==="write"||phase==="scored"){
+    const round=sess.drawRound||0, rolling=sess.rolling||null;
+    $("h-title").textContent = phase==="draw" ? "抽籤中" : (phase==="write" ? "寫你的第一集" : "AI 評分中");
+    $("draw-title").textContent = phase==="draw" ? (rolling?`正在抽：${FIELDS[rolling].k}`:(round>=7?"七項全部抽完":`已抽 ${round} / 7 項`)) : (phase==="write"?`已交大綱：${pub.filter(p=>p.title).length} / ${pub.length}`:"");
+    $("thead").innerHTML=`<th>暱稱</th>`+ORDER.map(k=>`<th class="${rolling===k?"now":""}">${FIELDS[k].k}</th>`).join("")+(phase!=="draw"?"<th>作品名</th>":"");
+    const rows=pub.filter(p=>p.ready);
+    $("draw-sub").textContent=`${rows.length} 人參加`;
+    // 建或更新列
+    const tb=$("tbody");
+    rows.forEach((p,i)=>{
+      let tr=tb.querySelector(`tr[data-uid="${p.uid}"]`);
+      if(!tr){ tr=document.createElement("tr"); tr.dataset.uid=p.uid; tr.innerHTML=`<td>${esc(p.nick)}</td>`+ORDER.map(k=>`<td class="empty" data-k="${k}">·</td>`).join("")+`<td data-k="title"></td>`; tb.appendChild(tr); }
+      const d=p.drawn||{};
+      ORDER.forEach(k=>{
+        const td=tr.querySelector(`td[data-k="${k}"]`);
+        if(d[k]){ if(!shown[p.uid+k]){ shown[p.uid+k]=1; td.classList.remove("empty","rolling"); setTimeout(()=>{ td.textContent=d[k]; td.classList.add("hit"); setTimeout(()=>td.classList.remove("hit"),900); }, Math.min(i*60, 2400)); } else if(!td.classList.contains("hit")) { td.textContent=d[k]; td.classList.remove("empty","rolling"); } }
+        else if(rolling===k){ if(!td.classList.contains("rolling")){ td.classList.add("rolling"); td.classList.remove("empty"); } td.textContent=decoy(); }
+        else { td.classList.add("empty"); td.classList.remove("rolling"); td.textContent="·"; }
+      });
+      const tt=tr.querySelector('td[data-k="title"]'); if(tt){ tt.textContent=p.title||""; tt.style.display = phase==="draw"?"none":""; }
+    });
+  }
+  if(phase==="reveal"){
+    const rv=sess.reveal||{step:4,items:[]}; $("h-title").textContent="前三名";
+    const items=(rv.items||[]).filter(it=>it.rank>=rv.step).sort((a,b)=>b.rank-a.rank);
+    $("reveal").innerHTML=items.map(it=>`<div class="rank" data-rank="${it.rank}"><span class="sc">${esc(it.score)}</span><div class="no">第 ${it.rank} 名</div><h3>${esc(it.title)}</h3><div class="nick">${esc(it.nick)}</div>
+      <div class="els">${ORDER.map(k=>`<span class="${k}">${FIELDS[k].k}：${esc((it.drawn||{})[k]||"")}</span>`).join("")}</div>
+      <div class="syn">${esc(it.synopsis)}</div><div class="why">評分依據：${esc(it.reasons||it.comment||"")}</div></div>`).join("") || `<p class="small">等老師按下「揭曉第 3 名」。</p>`;
+  }
+}
+const DEC="龍貓刀夜雨星海鍵月光影火鏡夢塔門鐘花船鳥風雪城書鈴傘箱砂島";
+function decoy(){ let s=""; for(let i=0;i<5;i++) s+=DEC[Math.floor(Math.random()*DEC.length)]; return s; }
+setInterval(()=>{ if(sess&&sess.rolling) document.querySelectorAll("td.rolling").forEach(td=>td.textContent=decoy()); },90);
+</script>
+</body>
+</html>

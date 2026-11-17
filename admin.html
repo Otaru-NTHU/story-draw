@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>故事抽籤 老師後台</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  main{max-width:1100px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;position:sticky;top:0;background:var(--bg)}
+  .wrap{overflow-x:auto}
+  .phases button{margin:3px}
+  .phases button.on{background:var(--accent)}
+  .log{font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;max-height:160px;overflow:auto;white-space:pre-wrap}
+  .drawbtns button{margin:3px}
+  .drawbtns button.done{background:var(--ok)}
+  input.sm{width:auto;display:inline-block}
+</style>
+</head>
+<body>
+<header><div class="kicker">動漫文化賞析 ・ 老師後台</div><h1>故事抽籤 控制台 <span class="phase" id="phase-chip">—</span></h1></header>
+<main>
+  <div id="v-login" class="card hidden" style="max-width:420px">
+    <label for="l-email">老師 Email</label><input id="l-email" type="email">
+    <label for="l-pw">密碼</label><input id="l-pw" type="password">
+    <div class="err" id="l-err"></div>
+    <div class="row" style="margin-top:12px"><button id="b-login">登入</button></div>
+    <p class="small">第一次用：先在 Firebase 主控台 → Authentication 建立這個老師帳號（Email/密碼），Email 要和 firebase-config.js、firestore.rules 裡的一致。</p>
+  </div>
+
+  <div id="v-app" class="hidden">
+    <div class="grid">
+      <section class="card">
+        <h3>1. 階段</h3>
+        <div class="phases" id="phases"></div>
+        <p class="small">學生手機與投影板會跟著這裡切換。</p>
+        <div class="row" style="margin-top:8px"><label style="margin:0"><input type="checkbox" id="lock"> 鎖定元素（抽籤前打勾，學生就不能再改）</label></div>
+        <div class="row" style="margin-top:8px"><a class="btn ghost" href="board.html" target="_blank" rel="noopener">開投影板</a><a class="btn ghost" href="index.html" target="_blank" rel="noopener">開學生頁</a></div>
+      </section>
+
+      <section class="card">
+        <h3>2. 抽籤（依序按）</h3>
+        <div class="drawbtns" id="drawbtns"></div>
+        <div class="row" style="margin-top:8px"><button id="b-fill" class="ghost">補抽缺漏（遲到者）</button><button id="b-reset-draw" class="ghost" style="color:var(--bad);border-color:var(--bad)">清除全部抽籤</button></div>
+        <p class="small">每一項：先讓投影板轉 3 秒，再把全班該項元素洗牌發出去，保證不會抽到自己的。</p>
+      </section>
+
+      <section class="card">
+        <h3>3. AI 評分</h3>
+        <label for="gkey">Gemini API key（只存在這個瀏覽器分頁）</label><input id="gkey" type="password" placeholder="AIza…">
+        <label for="gmodel">模型</label><input id="gmodel" type="text" value="gemini-2.5-flash">
+        <div class="row" style="margin-top:8px"><button id="b-score">評分所有未評的</button><button id="b-rescore" class="ghost">全部重評</button></div>
+        <div class="row" style="margin-top:8px"><button id="b-export" class="ghost">匯出待評 JSON</button><button id="b-import" class="ghost">匯入評分 JSON</button><input type="file" id="f-import" accept="application/json" class="hidden"></div>
+        <p class="small">沒有 API key 也行：匯出 JSON 丟給 Claude 評，再把結果匯入。</p>
+      </section>
+
+      <section class="card">
+        <h3>4. 揭曉</h3>
+        <div class="row"><button id="b-rev3" class="gold">計算前三名，揭曉第 3 名</button><button id="b-rev2" class="gold">揭曉第 2 名</button><button id="b-rev1" class="gold">揭曉第 1 名</button></div>
+        <p class="small">投影板會從第 3 名開始，一次疊一張。</p>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0">學生名單 <span id="cnt" class="small"></span></h3><button id="b-csv" class="ghost">下載 CSV</button></div>
+      <div class="wrap"><table><thead><tr><th>暱稱</th><th>學號</th><th>姓名</th><th>Email</th><th>元素</th><th>抽到</th><th>作品名</th><th>分數</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+    <section class="card"><h3>紀錄</h3><div class="log" id="log"></div></section>
+  </div>
+</main>
+<div id="toast" class="toast" role="status"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="common.js"></script>
+<script>
+let sess={phase:"input"}, students=[], scores={};
+function log(m){ const l=$("log"); l.textContent=(new Date().toLocaleTimeString()+"  "+m+"\n")+l.textContent; }
+$("b-login").onclick=async()=>{ try{ await auth.signInWithEmailAndPassword($("l-email").value.trim(),$("l-pw").value); }catch(e){ $("l-err").textContent="登入失敗："+e.message; } };
+auth.onAuthStateChanged(u=>{
+  const ok = u && u.email===window.TEACHER_EMAIL;
+  $("v-login").classList.toggle("hidden",!!ok); $("v-app").classList.toggle("hidden",!ok);
+  if(u && !ok){ $("l-err").textContent="這不是老師帳號。"; auth.signOut(); return; }
+  if(!ok) return;
+  sessRef.onSnapshot(s=>{ sess=s.exists?s.data():{phase:"input"}; render(); });
+  stuCol.onSnapshot(q=>{ students=q.docs.map(d=>({uid:d.id,...d.data()})); render(); });
+  scoreCol.onSnapshot(q=>{ scores={}; q.docs.forEach(d=>scores[d.id]=d.data()); render(); });
+  try{ $("gkey").value=sessionStorage.getItem("gkey")||""; }catch(e){}
+});
+$("gkey").addEventListener("input",()=>{ try{ sessionStorage.setItem("gkey",$("gkey").value); }catch(e){} });
+
+function render(){
+  const phase=sess.phase||"input"; $("phase-chip").textContent=PHASES[phase]||phase;
+  $("phases").innerHTML=Object.keys(PHASES).filter(p=>p!=="login").map(p=>`<button class="${phase===p?"on":""}" data-p="${p}">${PHASES[p]}</button>`).join("");
+  $("phases").querySelectorAll("button").forEach(b=>b.onclick=()=>setSess({phase:b.dataset.p}));
+  $("lock").checked=!!sess.inputLocked;
+  const doneK=new Set(); students.forEach(s=>{ ORDER.forEach(k=>{ if(s.drawn&&s.drawn[k]) doneK.add(k); }); });
+  $("drawbtns").innerHTML=ORDER.map((k,i)=>`<button data-k="${k}" class="${doneK.has(k)?"done":""}">${i+1}. ${FIELDS[k].k}</button>`).join("");
+  $("drawbtns").querySelectorAll("button").forEach(b=>b.onclick=()=>drawRound(b.dataset.k));
+  const ready=students.filter(s=>s.elements&&ORDER.every(k=>s.elements[k]));
+  $("cnt").textContent=`共 ${students.length} 人，${ready.length} 人填好元素，${students.filter(s=>s.story&&s.story.title).length} 人交大綱，${Object.keys(scores).length} 人已評分`;
+  $("rows").innerHTML=students.sort((a,b)=>(a.nick||"").localeCompare(b.nick||"","zh-Hant")).map(s=>{
+    const el=s.elements||{}, d=s.drawn||{}, sc=scores[s.uid];
+    return `<tr><td><b>${esc(s.nick)}</b></td><td>${esc(s.sid)}</td><td>${esc(s.name)}</td><td class="small">${esc(s.email)}</td>
+      <td class="small">${ORDER.filter(k=>el[k]).length}/7</td><td class="small">${ORDER.filter(k=>d[k]).length}/7</td>
+      <td>${esc(s.story&&s.story.title||"")}</td><td>${sc?esc(sc.score):""}</td></tr>`; }).join("");
+}
+async function setSess(patch){ await sessRef.set(patch,{merge:true}); }
+$("lock").onchange=()=>setSess({inputLocked:$("lock").checked});
+
+/* ---------- 抽籤 ---------- */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function derange(n){ // 回傳 perm，perm[i]!==i
+  if(n<2) return [0];
+  for(let t=0;t<200;t++){ const p=shuffle([...Array(n).keys()]); if(p.every((v,i)=>v!==i)) return p; }
+  return [...Array(n).keys()].map(i=>(i+1)%n);
+}
+async function drawRound(k){
+  const elig=students.filter(s=>s.elements&&s.elements[k]&&!(s.drawn&&s.drawn[k]));
+  if(elig.length===0){ toast("這一項沒有人需要抽"); return; }
+  if(!sess.inputLocked) await setSess({inputLocked:true});
+  await setSess({phase:"draw", rolling:k});
+  log(`抽「${FIELDS[k].k}」：${elig.length} 人`);
+  await new Promise(r=>setTimeout(r,3000));
+  const perm=derange(elig.length);
+  const batch=dbf.batch();
+  elig.forEach((s,i)=>{
+    const from=elig[perm[i]]; const val=from.elements[k];
+    batch.set(stuCol.doc(s.uid),{drawn:{[k]:val}, drawnFrom:{[k]:from.nick}},{merge:true});
+    batch.set(pubCol.doc(s.uid),{drawn:{[k]:val}},{merge:true});
+  });
+  await batch.commit();
+  const round=Math.max(sess.drawRound||0, ORDER.indexOf(k)+1);
+  await setSess({rolling:null, drawRound:round});
+  log(`「${FIELDS[k].k}」發完`);
+}
+$("b-fill").onclick=async()=>{
+  // 遲到者：每一項缺的，從全班該項元素裡隨機抽一個（避開自己）
+  const pool={}; ORDER.forEach(k=>pool[k]=students.filter(s=>s.elements&&s.elements[k]).map(s=>({uid:s.uid,v:s.elements[k],nick:s.nick})));
+  const batch=dbf.batch(); let n=0;
+  students.forEach(s=>{
+    if(!(s.elements&&ORDER.every(k=>s.elements[k]))) return;
+    const d=s.drawn||{}; const patch={}, from={};
+    ORDER.forEach(k=>{ if(d[k]) return; const cand=pool[k].filter(c=>c.uid!==s.uid); if(!cand.length) return; const c=cand[Math.floor(Math.random()*cand.length)]; patch[k]=c.v; from[k]=c.nick; });
+    if(Object.keys(patch).length){ n++; batch.set(stuCol.doc(s.uid),{drawn:patch,drawnFrom:from},{merge:true}); batch.set(pubCol.doc(s.uid),{drawn:patch},{merge:true}); }
+  });
+  if(!n){ toast("沒有缺漏"); return; }
+  await batch.commit(); await setSess({drawRound:7}); log(`補抽 ${n} 人`); toast(`補抽 ${n} 人`);
+};
+$("b-reset-draw").onclick=async()=>{
+  if(!window.confirm("確定清除全班所有抽籤結果？")) return;
+  const batch=dbf.batch(); const del=firebase.firestore.FieldValue.delete();
+  students.forEach(s=>{ batch.set(stuCol.doc(s.uid),{drawn:del,drawnFrom:del},{merge:true}); batch.set(pubCol.doc(s.uid),{drawn:del},{merge:true}); });
+  await batch.commit(); await setSess({drawRound:0,rolling:null}); log("已清除抽籤");
+};
+
+/* ---------- AI 評分 ---------- */
+const RUBRIC=`你是動畫編劇課的助教，請依下列標準評分一份「動畫第一集」的提案，只輸出 JSON。
+標準（滿分 100）：
+- structure（0–30）三幕是否成立：有平凡世界→召喚→不可回頭；第二幕有升級與翻轉；第三幕有高潮與代價
+- macguffin（0–20）麥高芬是否真的推動劇情，而不只是被提到
+- hook（0–20）第一集結尾／最後 30 秒的鉤子強不強，讓人想看第二集
+- theme（0–15）作品名與大綱能否讓人一句話說出主旨
+- integration（0–15）七個抽到的元素是否自然融入，不像硬塞
+- comment：給作者的 60–100 字評語，繁體中文，先說最好的一點，再給一個最有效的修改建議
+- reasons：一句話（40 字內）說明為什麼得到這個分數，會公開展示
+輸出格式：{"structure":n,"macguffin":n,"hook":n,"theme":n,"integration":n,"comment":"...","reasons":"..."}`;
+function stuPayload(s){ const d=s.drawn||{}; return `作者暱稱：${s.nick}\n抽到的元素：${ORDER.map(k=>FIELDS[k].k+"＝"+(d[k]||"")).join("／")}\n作品名稱：${s.story.title}\n故事大綱：${s.story.synopsis}`; }
+async function gemini(text){
+  const key=$("gkey").value.trim(), model=$("gmodel").value.trim();
+  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text}]}],generationConfig:{responseMimeType:"application/json",temperature:0.3}})});
+  if(!r.ok) throw new Error("Gemini "+r.status+" "+(await r.text()).slice(0,200));
+  const j=await r.json(); return JSON.parse(j.candidates[0].content.parts[0].text);
+}
+function normScore(o){ const c=(v,m)=>Math.max(0,Math.min(m,Math.round(Number(v)||0))); const rubric={structure:c(o.structure,30),macguffin:c(o.macguffin,20),hook:c(o.hook,20),theme:c(o.theme,15),integration:c(o.integration,15)}; return {rubric, score:Object.values(rubric).reduce((a,b)=>a+b,0), comment:String(o.comment||""), reasons:String(o.reasons||""), scoredAt:firebase.firestore.FieldValue.serverTimestamp()}; }
+async function scoreAll(all){
+  if(!$("gkey").value.trim()){ toast("先填 Gemini API key，或用匯出／匯入"); return; }
+  const todo=students.filter(s=>s.story&&s.story.title&&(all||!scores[s.uid]));
+  log(`開始評分 ${todo.length} 人`); let ok=0;
+  for(const s of todo){
+    try{ const o=await gemini(RUBRIC+"\n\n"+stuPayload(s)); await scoreCol.doc(s.uid).set(normScore(o)); ok++; log(`✓ ${s.nick} ${normScore(o).score}`); }
+    catch(e){ log(`✗ ${s.nick}：${e.message}`); }
+    await new Promise(r=>setTimeout(r,400));
+  }
+  toast(`評分完成 ${ok}/${todo.length}`); if(ok) await setSess({phase:"scored"});
+}
+$("b-score").onclick=()=>scoreAll(false);
+$("b-rescore").onclick=()=>{ if(window.confirm("全部重評？")) scoreAll(true); };
+$("b-export").onclick=()=>{
+  const data=students.filter(s=>s.story&&s.story.title).map(s=>({uid:s.uid,nick:s.nick,drawn:s.drawn,title:s.story.title,synopsis:s.story.synopsis}));
+  dl("待評_"+SID+".json", JSON.stringify({rubric:RUBRIC, format:"回傳 [{uid, structure, macguffin, hook, theme, integration, comment, reasons}]", items:data},null,2));
+};
+$("b-import").onclick=()=>$("f-import").click();
+$("f-import").onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return; const arr=JSON.parse(await f.text()); const items=Array.isArray(arr)?arr:(arr.items||[]);
+  let n=0; for(const o of items){ if(!o.uid) continue; await scoreCol.doc(o.uid).set(normScore(o)); n++; }
+  log(`匯入評分 ${n} 筆`); toast(`匯入 ${n} 筆`); if(n) await setSess({phase:"scored"});
+};
+function dl(name,text){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type:"application/json"})); a.download=name; a.click(); }
+$("b-csv").onclick=()=>{
+  const h=["暱稱","學號","姓名","Email",...ORDER.map(k=>"自填"+FIELDS[k].k),...ORDER.map(k=>"抽到"+FIELDS[k].k),"作品名","大綱","分數","評語"];
+  const rows=students.map(s=>{ const el=s.elements||{},d=s.drawn||{},sc=scores[s.uid]||{}; return [s.nick,s.sid,s.name,s.email,...ORDER.map(k=>el[k]||""),...ORDER.map(k=>d[k]||""),s.story&&s.story.title||"",s.story&&s.story.synopsis||"",sc.score==null?"":sc.score,sc.comment||""]; });
+  const csv="﻿"+[h,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download=SID+"_全班.csv"; a.click();
+};
+
+/* ---------- 揭曉 ---------- */
+function top3(){
+  return students.filter(s=>scores[s.uid]&&s.story).map(s=>({s,sc:scores[s.uid]}))
+    .sort((a,b)=>b.sc.score-a.sc.score || ((a.s.story.updatedAt&&a.s.story.updatedAt.seconds)||0)-((b.s.story.updatedAt&&b.s.story.updatedAt.seconds)||0))
+    .slice(0,3).map((x,i)=>({rank:i+1,uid:x.s.uid,nick:x.s.nick,drawn:x.s.drawn||{},title:x.s.story.title,synopsis:x.s.story.synopsis,score:x.sc.score,reasons:x.sc.reasons||""}));
+}
+$("b-rev3").onclick=async()=>{ const items=top3(); if(items.length<1){ toast("還沒有評分"); return; } await setSess({phase:"reveal",reveal:{step:3,items}}); log("揭曉第 3 名"); };
+$("b-rev2").onclick=()=>setSess({reveal:{...(sess.reveal||{items:top3()}),step:2}});
+$("b-rev1").onclick=()=>setSess({reveal:{...(sess.reveal||{items:top3()}),step:1}});
+</script>
+</body>
+</html>

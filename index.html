@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>故事抽籤：我的第一集</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tabs button{flex:1;background:transparent;color:var(--muted);border:1.5px solid var(--line)}
+  .tabs button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .me{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);padding:8px 0}
+  .me b{color:var(--ink)}
+  .steps{display:flex;gap:4px;margin:6px 0 2px}
+  .steps span{flex:1;height:5px;border-radius:3px;background:var(--line)}
+  .steps span.done{background:var(--ok)} .steps span.now{background:var(--accent)}
+  .counter{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">動漫文化賞析 ・ 劇情構思</div>
+  <h1>故事抽籤：我的第一集</h1>
+</header>
+<main>
+  <div id="v-auth" class="hidden">
+    <div class="tabs"><button id="t-reg" class="on">第一次使用</button><button id="t-login">我有帳號</button></div>
+    <div class="card" id="f-reg">
+      <label for="r-sid">學號</label><input id="r-sid" type="text" inputmode="numeric" autocomplete="off" placeholder="例：114012345">
+      <label for="r-name">姓名</label><input id="r-name" type="text" autocomplete="name">
+      <label for="r-nick">暱稱（投影幕上會顯示這個）</label><input id="r-nick" type="text" maxlength="12" placeholder="12 字以內">
+      <label for="r-email">Email（之後登入、找回密碼用）</label><input id="r-email" type="email" autocomplete="email" placeholder="你收得到信的信箱">
+      <label for="r-pw">自訂密碼（至少 6 碼）</label><input id="r-pw" type="password" autocomplete="new-password">
+      <div class="err" id="r-err"></div>
+      <div class="row" style="margin-top:12px"><button id="b-reg" class="accent">建立帳號並進入</button></div>
+    </div>
+    <div class="card hidden" id="f-login">
+      <label for="l-email">Email</label><input id="l-email" type="email" autocomplete="email">
+      <label for="l-pw">密碼</label><input id="l-pw" type="password" autocomplete="current-password">
+      <div class="err" id="l-err"></div>
+      <div class="row" style="margin-top:12px"><button id="b-login">登入</button><button id="b-reset" class="ghost">忘記密碼</button></div>
+    </div>
+  </div>
+
+  <div id="v-app" class="hidden">
+    <div class="me"><span>你是 <b id="me-nick"></b>　<span class="phase" id="phase-chip">—</span></span><button id="b-out" class="ghost" style="padding:5px 10px;font-size:12px">登出</button></div>
+    <div class="steps"><span id="s1"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span></div>
+    <div class="small" style="margin-bottom:8px">① 填元素 → ② 抽籤 → ③ 寫大綱 → ④ 評分</div>
+
+    <!-- ① 填元素 -->
+    <section id="sec-input" class="card">
+      <h2>① 填你的七個元素</h2>
+      <p class="small">你填的東西會進全班的籤筒，抽籤時會被別人抽到；你也會抽到別人的。填得越具體、越怪，全班越好玩。</p>
+      <div id="input-form"></div>
+      <div class="err" id="i-err"></div>
+      <div class="row" style="margin-top:12px"><button id="b-save-el">儲存元素</button><span class="small" id="i-note"></span></div>
+    </section>
+
+    <!-- ② 抽籤 -->
+    <section id="sec-draw" class="card hidden">
+      <h2>② 抽籤</h2>
+      <p class="small" id="draw-note">老師會一項一項抽。輪到的時候，這裡會自己轉起來。</p>
+      <div class="slots" id="draw-slots"></div>
+    </section>
+
+    <!-- ③ 寫大綱 -->
+    <section id="sec-write" class="card hidden">
+      <h2>③ 作品名稱與故事大綱</h2>
+      <p class="small">用上面抽到的七個元素。大綱寫三幕：發生什麼、怎麼翻轉、第一集最後 30 秒是什麼。150–400 字。</p>
+      <label for="w-title">作品名稱</label><input id="w-title" type="text" maxlength="40">
+      <label for="w-syn">故事大綱 <span class="counter" id="w-count">0</span> 字</label><textarea id="w-syn" maxlength="600"></textarea>
+      <div class="err" id="w-err"></div>
+      <div class="row" style="margin-top:12px"><button id="b-save-story" class="accent">送出</button><span class="small" id="w-note"></span></div>
+    </section>
+
+    <!-- ④ 評分 -->
+    <section id="sec-score" class="card hidden">
+      <h2>④ AI 初步評分</h2>
+      <p class="small">只有你自己看得到這個分數。這是 AI 依編劇課的四個標準給的初步意見，不是成績。</p>
+      <div id="score-box"></div>
+    </section>
+
+    <section id="sec-reveal" class="card gold hidden">
+      <p><b>請看螢幕</b>，老師正在揭曉前三名。</p>
+    </section>
+  </div>
+</main>
+<div id="toast" class="toast" role="status"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="common.js"></script>
+<script>
+let me=null, meDoc=null, sess=null, scoreDoc=null, unsubs=[];
+let shownDrawn={}; // 已經播過動畫的欄位
+
+/* ---------- 登入／註冊 ---------- */
+$("t-reg").onclick=()=>{ $("t-reg").classList.add("on"); $("t-login").classList.remove("on"); $("f-reg").classList.remove("hidden"); $("f-login").classList.add("hidden"); };
+$("t-login").onclick=()=>{ $("t-login").classList.add("on"); $("t-reg").classList.remove("on"); $("f-login").classList.remove("hidden"); $("f-reg").classList.add("hidden"); };
+
+$("b-reg").onclick=async()=>{
+  const sid=$("r-sid").value.trim(), name=$("r-name").value.trim(), nick=$("r-nick").value.trim(), email=$("r-email").value.trim(), pw=$("r-pw").value;
+  const err=$("r-err"); err.textContent="";
+  if(!sid||!name||!nick||!email||pw.length<6){ err.textContent="每一欄都要填，密碼至少 6 碼。"; return; }
+  $("b-reg").disabled=true;
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(email,pw);
+    const uid=cred.user.uid;
+    await stuCol.doc(uid).set({ sid, name, nick, email, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    await pubCol.doc(uid).set({ nick });
+  }catch(e){
+    err.textContent = e.code==="auth/email-already-in-use" ? "這個 Email 已經註冊過，請切到「我有帳號」登入。" : (e.code==="auth/invalid-email" ? "Email 格式不對。" : "建立失敗："+e.message);
+  }
+  $("b-reg").disabled=false;
+};
+$("b-login").onclick=async()=>{
+  const err=$("l-err"); err.textContent="";
+  try{ await auth.signInWithEmailAndPassword($("l-email").value.trim(),$("l-pw").value); }
+  catch(e){ err.textContent="登入失敗，請確認 Email 與密碼。"; }
+};
+$("b-reset").onclick=async()=>{
+  const em=$("l-email").value.trim(); if(!em){ $("l-err").textContent="先填 Email，再按忘記密碼。"; return; }
+  try{ await auth.sendPasswordResetEmail(em); toast("重設密碼的信已寄出"); }catch(e){ $("l-err").textContent="寄送失敗："+e.message; }
+};
+$("b-out").onclick=()=>auth.signOut();
+
+auth.onAuthStateChanged(async u=>{
+  unsubs.forEach(f=>f()); unsubs=[]; me=u; meDoc=null; sess=null; scoreDoc=null; shownDrawn={};
+  if(!u){ $("v-auth").classList.remove("hidden"); $("v-app").classList.add("hidden"); return; }
+  $("v-auth").classList.add("hidden"); $("v-app").classList.remove("hidden");
+  unsubs.push(sessRef.onSnapshot(s=>{ sess=s.exists?s.data():{phase:"input"}; render(); }));
+  unsubs.push(stuCol.doc(u.uid).onSnapshot(s=>{ meDoc=s.exists?s.data():null; if(meDoc) { $("me-nick").textContent=meDoc.nick||""; } render(); }));
+  unsubs.push(scoreCol.doc(u.uid).onSnapshot(s=>{ scoreDoc=s.exists?s.data():null; render(); }, ()=>{}));
+});
+
+/* ---------- 畫面 ---------- */
+function buildInputForm(){
+  const el=(meDoc&&meDoc.elements)||{};
+  $("input-form").innerHTML = ORDER.map(k=>{
+    if(k==="tech"){
+      return `<label for="e-${k}">${FIELDS[k].k}</label><select id="e-${k}"><option value="">請選一個</option>${TECHS.map(t=>`<option ${el[k]===t?"selected":""}>${esc(t)}</option>`).join("")}</select><div class="hint">${FIELDS[k].hint}</div>`;
+    }
+    return `<label for="e-${k}">${FIELDS[k].k}</label><input id="e-${k}" type="text" maxlength="30" value="${esc(el[k]||"")}"><div class="hint">${FIELDS[k].hint}</div>`;
+  }).join("");
+}
+let formBuilt=false;
+function render(){
+  if(!me) return;
+  const phase=(sess&&sess.phase)||"input";
+  $("phase-chip").textContent=PHASES[phase]||phase;
+  const hasEl = !!(meDoc&&meDoc.elements&&ORDER.every(k=>meDoc.elements[k]));
+  const drawn = (meDoc&&meDoc.drawn)||{};
+  const drawnAll = ORDER.every(k=>drawn[k]);
+  const hasStory = !!(meDoc&&meDoc.story&&meDoc.story.title);
+  const locked = !!(sess&&sess.inputLocked);
+
+  // 進度條
+  [["s1",hasEl],["s2",drawnAll],["s3",hasStory],["s4",!!scoreDoc]].forEach(([id,done],i,arr)=>{
+    const e=$(id); e.className=done?"done":""; });
+  const nowIdx = !hasEl?0 : !drawnAll?1 : !hasStory?2 : 3; if(!$(["s1","s2","s3","s4"][nowIdx]).classList.contains("done")) $(["s1","s2","s3","s4"][nowIdx]).classList.add("now");
+
+  // ① 填元素：沒填完一律顯示；填完後，抽籤開始前還能改
+  if(!formBuilt){ buildInputForm(); formBuilt=true; }
+  const showInput = !hasEl || (!locked && Object.keys(drawn).length===0);
+  $("sec-input").classList.toggle("hidden", !showInput);
+  if(locked && !hasEl){ $("i-note").textContent="抽籤已開始；你存好之後老師會幫你補抽。"; }
+  else { $("i-note").textContent = hasEl ? "已儲存，抽籤開始前都還能改。" : ""; }
+
+  // ② 抽籤
+  const showDraw = hasEl && (locked || Object.keys(drawn).length>0 || phase!=="input");
+  $("sec-draw").classList.toggle("hidden", !showDraw);
+  if(showDraw) renderDraw(drawn);
+
+  // ③ 寫大綱
+  $("sec-write").classList.toggle("hidden", !drawnAll);
+  if(drawnAll && meDoc.story && !$("w-title").dataset.touched){ $("w-title").value=meDoc.story.title||""; $("w-syn").value=meDoc.story.synopsis||""; $("w-count").textContent=$("w-syn").value.length; }
+  $("w-note").textContent = hasStory ? "已送出。下課前都可以再改，重新送出即可。" : "";
+
+  // ④ 評分
+  $("sec-score").classList.toggle("hidden", !(scoreDoc && (phase==="scored"||phase==="reveal")));
+  if(scoreDoc) renderScore(scoreDoc);
+  $("sec-reveal").classList.toggle("hidden", phase!=="reveal");
+}
+
+function renderDraw(drawn){
+  const box=$("draw-slots");
+  if(!box.dataset.built){ box.innerHTML=slotHTML({}, {waitText:"等待抽籤…"}); box.dataset.built="1"; }
+  ORDER.forEach(k=>{
+    const slot=box.querySelector(`.slot[data-k="${k}"]`), v=slot.querySelector(".v");
+    if(drawn[k] && !shownDrawn[k]){ shownDrawn[k]=true; roll(slot, v, drawn[k]); }
+    else if(drawn[k] && !slot.classList.contains("rolling")){ v.textContent=drawn[k]; slot.classList.remove("wait"); }
+  });
+  const n=ORDER.filter(k=>drawn[k]).length;
+  $("draw-note").textContent = n===7 ? "七個元素都到手了。往下寫你的第一集。" : `已抽 ${n} / 7。老師會一項一項抽，輪到時這裡會自己轉起來。`;
+}
+const DECOY="龍貓刀夜雨星海鍵月光影火鏡夢塔門鐘花船鳥風雪城書鈴傘箱砂島";
+function roll(slot, v, finalText){
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  slot.classList.remove("wait"); slot.classList.add("rolling");
+  if(reduce){ v.textContent=finalText; slot.classList.remove("rolling"); slot.classList.add("hit"); return; }
+  const len=Math.min(8, Math.max(3, finalText.length));
+  let t=0; const iv=setInterval(()=>{
+    let s=""; for(let i=0;i<len;i++) s+=DECOY[Math.floor(Math.random()*DECOY.length)];
+    v.textContent=s; t++;
+    if(t>18){ clearInterval(iv); v.textContent=finalText; slot.classList.remove("rolling"); slot.classList.add("hit"); setTimeout(()=>slot.classList.remove("hit"),600); }
+  },70);
+}
+
+function renderScore(sc){
+  const r=sc.rubric||{};
+  const rows=[["三幕是否成立",r.structure,30],["麥高芬有沒有功能",r.macguffin,20],["第一集鉤子",r.hook,20],["主旨一句說清",r.theme,15],["元素整合是否自然",r.integration,15]];
+  $("score-box").innerHTML = `<div class="score">${esc(sc.score)}<span style="font-size:18px;color:var(--muted)"> / 100</span></div>
+    ${rows.map(([n,s,m])=>`<div class="small" style="display:flex;justify-content:space-between"><span>${n}</span><span>${s==null?"—":s} / ${m}</span></div><div class="bar"><i style="width:${m?Math.round(((s||0)/m)*100):0}%"></i></div>`).join("")}
+    <p style="margin-top:10px">${esc(sc.comment||"")}</p>`;
+}
+
+/* ---------- 儲存 ---------- */
+$("b-save-el").onclick=async()=>{
+  const el={}; for(const k of ORDER){ el[k]=($("e-"+k).value||"").trim(); }
+  const err=$("i-err"); err.textContent="";
+  const missing=ORDER.filter(k=>!el[k]); if(missing.length){ err.textContent="還沒填："+missing.map(k=>FIELDS[k].k).join("、"); return; }
+  $("b-save-el").disabled=true;
+  try{
+    await stuCol.doc(me.uid).set({ elements: el, elementsAt: firebase.firestore.FieldValue.serverTimestamp() },{merge:true});
+    await pubCol.doc(me.uid).set({ ready:true },{merge:true});
+    toast("元素已存進籤筒");
+  }
+  catch(e){ err.textContent="儲存失敗："+e.message; }
+  $("b-save-el").disabled=false;
+};
+$("w-syn").addEventListener("input",()=>{ $("w-count").textContent=$("w-syn").value.length; $("w-title").dataset.touched="1"; });
+$("w-title").addEventListener("input",()=>{ $("w-title").dataset.touched="1"; });
+$("b-save-story").onclick=async()=>{
+  const title=$("w-title").value.trim(), syn=$("w-syn").value.trim(); const err=$("w-err"); err.textContent="";
+  if(!title||syn.length<50){ err.textContent="作品名稱必填，大綱至少 50 字。"; return; }
+  $("b-save-story").disabled=true;
+  try{
+    await stuCol.doc(me.uid).set({ story:{title, synopsis:syn, updatedAt: firebase.firestore.FieldValue.serverTimestamp()} },{merge:true});
+    await pubCol.doc(me.uid).set({ title },{merge:true});
+    toast("已送出");
+  }catch(e){ err.textContent="送出失敗："+e.message; }
+  $("b-save-story").disabled=false;
+};
+</script>
+</body>
+</html>

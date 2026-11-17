@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    // 老師：改成和 firebase-config.js 的 TEACHER_EMAIL 一樣
+    function isTeacher() { return signedIn() && request.auth.token.email == "otaru.pro@gmail.com"; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+
+    match /sessions/{sid} {
+      // 場次狀態（phase、抽籤進度、前三名揭曉）：大家可讀，只有老師可寫
+      allow read: if signedIn();
+      allow write: if isTeacher();
+
+      // 學生私人資料：本人與老師可讀；本人可建立與更新，但不能自己改 drawn（抽籤結果）
+      match /students/{uid} {
+        allow read: if isSelf(uid) || isTeacher();
+        allow create: if isSelf(uid);
+        allow update: if isTeacher()
+          || (isSelf(uid) && !("drawn" in request.resource.data.diff(resource.data).affectedKeys()));
+        allow delete: if isTeacher();
+      }
+
+      // 投影用公開資料（暱稱、抽到的元素、作品名）：登入者可讀；本人只能改 nick/title，drawn 由老師寫
+      match /public/{uid} {
+        allow read: if signedIn();
+        allow create: if isSelf(uid) && !("drawn" in request.resource.data);
+        allow update: if isTeacher()
+          || (isSelf(uid) && !("drawn" in request.resource.data.diff(resource.data).affectedKeys()));
+        allow delete: if isTeacher();
+      }
+
+      // AI 評分：本人只能讀自己的；老師可讀寫全部
+      match /scores/{uid} {
+        allow read: if isSelf(uid) || isTeacher();
+        allow write: if isTeacher();
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+:root{
+  --ink:#2E2547; --primary:#4B3F72; --accent:#E8748C; --gold:#F4A825; --bg:#FBFAF8;
+  --card:#FFFFFF; --line:#E6E1EC; --muted:#6F6885; --ok:#2F8F6B; --bad:#C8433E;
+  --display:"Noto Serif TC","Noto Sans TC",serif; --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --ink:#F1ECF7; --primary:#B8AEE0; --accent:#F08EA3; --gold:#F6B94E; --bg:#1B1627; --card:#262036; --line:#3A3250; --muted:#A79FC0; --ok:#5FC79C; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --ink:#F1ECF7; --primary:#B8AEE0; --accent:#F08EA3; --gold:#F6B94E; --bg:#1B1627; --card:#262036; --line:#3A3250; --muted:#A79FC0; --ok:#5FC79C; color-scheme:dark; }
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6}
+a{color:var(--primary)}
+header{padding:16px 16px 8px;border-bottom:1px solid var(--line)}
+header .kicker{font-size:12px;letter-spacing:.12em;color:var(--muted)}
+header h1{font-family:var(--display);font-size:21px;margin:4px 0 0;text-wrap:balance}
+main{max-width:640px;margin:0 auto;padding:16px}
+h2{font-family:var(--display);font-size:20px;margin:8px 0 12px}
+h3{font-size:15px;margin:14px 0 6px;color:var(--primary)}
+p{margin:6px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0}
+.card.accent{border-left:5px solid var(--accent)}
+.card.gold{border-left:5px solid var(--gold)}
+.card.ok{border-left:5px solid var(--ok)}
+.small{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button,.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:11px 16px;background:var(--primary);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+button.ghost{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+button.accent{background:var(--accent)}
+button.gold{background:var(--gold);color:#2E2547}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=email],input[type=password],textarea,select{font:inherit;width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+textarea{min-height:110px;resize:vertical}
+.hint{font-size:12px;color:var(--muted);margin-top:3px}
+.err{color:var(--bad);font-size:13px;margin-top:8px}
+.hidden{display:none !important}
+.slots{display:grid;gap:8px;margin-top:10px}
+.slot{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);min-height:52px}
+.slot .k{font-size:12px;color:var(--muted);padding-top:3px}
+.slot .v{font-weight:700;font-size:16px}
+.slot.mg{border-color:var(--gold)} .slot.tech{border-color:var(--accent)}
+.slot.wait .v{color:var(--muted);font-weight:400}
+.slot.rolling .v{color:var(--accent);letter-spacing:.05em}
+.slot.hit{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.96);background:var(--gold)}100%{transform:scale(1)}}
+.score{font-family:var(--display);font-size:56px;line-height:1;color:var(--primary);font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:4px 0 8px}
+.bar i{display:block;height:100%;background:var(--primary)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1}
+.phase{display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--primary);color:#fff;font-weight:600}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted);margin:2px 4px 2px 0}
+@media (prefers-reduced-motion: reduce){ .toast{transition:none} .slot.hit{animation:none} }
