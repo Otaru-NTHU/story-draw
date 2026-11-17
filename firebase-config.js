@@ -12,4 +12,4 @@ window.FIREBASE_CONFIG = {
 window.TEACHER_EMAIL = "otaru.pro@gmail.com";
 
 // 本學期場次代碼；改成新字串＝全新的一場（舊資料仍保留）
-window.SESSION_ID = "W11-2026-11-17";
+window.SESSION_ID = "2026-11-17";
