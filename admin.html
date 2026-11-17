@@ -151,7 +151,7 @@ $("b-fill").onclick=async()=>{
     if(Object.keys(patch).length){ n++; batch.set(stuCol.doc(s.uid),{drawn:patch,drawnFrom:from},{merge:true}); batch.set(pubCol.doc(s.uid),{drawn:patch},{merge:true}); }
   });
   if(!n){ toast("沒有缺漏"); return; }
-  await batch.commit(); await setSess({drawRound:7}); log(`補抽 ${n} 人`); toast(`補抽 ${n} 人`);
+  await batch.commit(); await setSess({drawRound:6}); log(`補抽 ${n} 人`); toast(`補抽 ${n} 人`);
 };
 $("b-reset-draw").onclick=async()=>{
   if(!window.confirm("確定清除全班所有抽籤結果？")) return;
@@ -167,7 +167,7 @@ const RUBRIC=`你是動畫編劇課的助教，請依下列標準評分一份「
 - macguffin（0–20）麥高芬是否真的推動劇情，而不只是被提到
 - hook（0–20）第一集結尾／最後 30 秒的鉤子強不強，讓人想看第二集
 - theme（0–15）作品名與大綱能否讓人一句話說出主旨
-- integration（0–15）七個抽到的元素是否自然融入，不像硬塞
+- integration（0–15）六個抽到的元素是否自然融入，不像硬塞
 - comment：給作者的 60–100 字評語，繁體中文，先說最好的一點，再給一個最有效的修改建議
 - reasons：一句話（40 字內）說明為什麼得到這個分數，會公開展示
 輸出格式：{"structure":n,"macguffin":n,"hook":n,"theme":n,"integration":n,"comment":"...","reasons":"..."}`;

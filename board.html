@@ -96,7 +96,7 @@ function render(){
   if(phase==="draw"||phase==="write"||phase==="scored"){
     const round=sess.drawRound||0, rolling=sess.rolling||null;
     $("h-title").textContent = phase==="draw" ? "抽籤中" : (phase==="write" ? "寫你的第一集" : "AI 評分中");
-    $("draw-title").textContent = phase==="draw" ? (rolling?`正在抽：${FIELDS[rolling].k}`:(round>=7?"七項全部抽完":`已抽 ${round} / 7 項`)) : (phase==="write"?`已交大綱：${pub.filter(p=>p.title).length} / ${pub.length}`:"");
+    $("draw-title").textContent = phase==="draw" ? (rolling?`正在抽：${FIELDS[rolling].k}`:(round>=7?"六項全部抽完":`已抽 ${round} / 6 項`)) : (phase==="write"?`已交大綱：${pub.filter(p=>p.title).length} / ${pub.length}`:"");
     $("thead").innerHTML=`<th>暱稱</th>`+ORDER.map(k=>`<th class="${rolling===k?"now":""}">${FIELDS[k].k}</th>`).join("")+(phase!=="draw"?"<th>作品名</th>":"");
     const rows=pub.filter(p=>p.ready);
     $("draw-sub").textContent=`${rows.length} 人參加`;

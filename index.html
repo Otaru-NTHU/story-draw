@@ -59,7 +59,7 @@
 
     <!-- ① 填元素 -->
     <section id="sec-input" class="card">
-      <h2>① 填你的七個元素</h2>
+      <h2>① 填你的六個元素</h2>
       <p class="small">你填的東西會進全班的籤筒，抽籤時會被別人抽到；你也會抽到別人的。填得越具體、越怪，全班越好玩。</p>
       <div id="i-wait" class="card gold hidden"><b>登入完成。</b>等老師開放第一題，這裡會自動出現。</div>
       <div id="input-form"></div>
@@ -77,7 +77,7 @@
     <!-- ③ 寫大綱 -->
     <section id="sec-write" class="card hidden">
       <h2>③ 作品名稱與故事大綱</h2>
-      <p class="small">用上面抽到的七個元素。大綱寫三幕：發生什麼、怎麼翻轉、第一集最後 30 秒是什麼。150–400 字。</p>
+      <p class="small">用上面抽到的六個元素。大綱寫三幕：發生什麼、怎麼翻轉、第一集最後 30 秒是什麼。150–400 字。</p>
       <label for="w-title">作品名稱</label><input id="w-title" type="text" maxlength="40">
       <label for="w-syn">故事大綱 <span class="counter" id="w-count">0</span> 字</label><textarea id="w-syn" maxlength="600"></textarea>
       <div class="err" id="w-err"></div>
@@ -242,7 +242,7 @@ function renderDraw(drawn){
     else if(drawn[k] && !slot.classList.contains("rolling")){ v.textContent=drawn[k]; slot.classList.remove("wait"); }
   });
   const n=ORDER.filter(k=>drawn[k]).length;
-  $("draw-note").textContent = n===7 ? "七個元素都到手了。往下寫你的第一集。" : `已抽 ${n} / 7。老師會一項一項抽，輪到時這裡會自己轉起來。`;
+  $("draw-note").textContent = n===7 ? "六個元素都到手了。往下寫你的第一集。" : `已抽 ${n} / 7。老師會一項一項抽，輪到時這裡會自己轉起來。`;
 }
 const DECOY="龍貓刀夜雨星海鍵月光影火鏡夢塔門鐘花船鳥風雪城書鈴傘箱砂島";
 function roll(slot, v, finalText){
