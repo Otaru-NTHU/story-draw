@@ -30,6 +30,12 @@ service cloud.firestore {
         allow delete: if isTeacher();
       }
 
+      // 畫廊：老師發布後全班可讀（只含作品名、暱稱、元素、大綱、評語）
+      match /gallery/{uid} {
+        allow read: if signedIn();
+        allow write: if isTeacher();
+      }
+
       // AI 評分：本人只能讀自己的；老師可讀寫全部
       match /scores/{uid} {
         allow read: if isSelf(uid) || isTeacher();

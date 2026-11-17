@@ -91,6 +91,10 @@
       <div id="score-box"></div>
     </section>
 
+    <section id="sec-gallery" class="card ok hidden">
+      <p><b>大家的作品開放閱覽了。</b>可以看到全班的作品名、暱稱、抽到的元素、大綱和 AI 評語（看不到分數與個人資料）。</p>
+      <div class="row" style="margin-top:8px"><a class="btn" href="gallery.html">去畫廊</a></div>
+    </section>
     <section id="sec-reveal" class="card gold hidden">
       <p><b>請看螢幕</b>，老師正在揭曉前三名。</p>
     </section>
@@ -231,6 +235,7 @@ function render(){
   $("sec-score").classList.toggle("hidden", !(scoreDoc && (phase==="scored"||phase==="reveal")));
   if(scoreDoc) renderScore(scoreDoc);
   $("sec-reveal").classList.toggle("hidden", phase!=="reveal");
+  $("sec-gallery").classList.toggle("hidden", !(sess&&sess.galleryOpen));
 }
 
 function renderDraw(drawn){

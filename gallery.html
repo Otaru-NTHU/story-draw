@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全班的第一集 畫廊</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  main{max-width:760px}
+  .bar{display:flex;gap:8px;align-items:center;margin:6px 0 12px}
+  .bar input{flex:1}
+  .bar select{width:auto}
+  .work{cursor:pointer}
+  .work h3{font-family:var(--display);font-size:20px;margin:0 0 2px;color:var(--ink)}
+  .work .nick{font-size:13px;color:var(--muted)}
+  .work .els{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 6px}
+  .work .els span{font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  .work .els span.mg{border-color:var(--gold);color:var(--ink)}
+  .work .syn{font-size:15px;line-height:1.75;white-space:pre-wrap;max-height:4.6em;overflow:hidden;position:relative}
+  .work.open .syn{max-height:none}
+  .work .syn::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2em;background:linear-gradient(transparent,var(--card))}
+  .work.open .syn::after{display:none}
+  .work .more{font-size:13px;color:var(--primary);margin-top:4px}
+  .work .ai{margin-top:10px;padding:10px 12px;border-left:4px solid var(--gold);background:var(--bg);border-radius:8px;font-size:14px;line-height:1.7;display:none}
+  .work.open .ai{display:block}
+  .work .ai b{color:var(--gold)}
+  .count{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">動漫文化賞析 ・ 故事抽籤</div>
+  <h1>全班的第一集</h1>
+</header>
+<main>
+  <div id="v-login" class="card hidden">
+    <p>請用你在故事抽籤註冊的 Email 與密碼登入。</p>
+    <label for="l-email">Email</label><input id="l-email" type="email" autocomplete="email">
+    <label for="l-pw">密碼</label><input id="l-pw" type="password" autocomplete="current-password">
+    <div class="err" id="l-err"></div>
+    <div class="row" style="margin-top:12px"><button id="b-login">登入</button><a class="btn ghost" href="index.html">回我的頁面</a></div>
+  </div>
+  <div id="v-app" class="hidden">
+    <p class="small">每一篇都是同學用抽到的六個元素寫出來的動畫第一集。點標題展開全文與 AI 評語。這裡看不到分數，也看不到任何人的個人資料。</p>
+    <div class="bar"><input id="q" type="text" placeholder="搜尋作品名、暱稱、元素"><select id="sort"><option value="rand">隨機</option><option value="title">作品名</option><option value="nick">暱稱</option></select></div>
+    <div class="count" id="count"></div>
+    <div id="list"></div>
+    <div id="closed" class="card gold hidden"><p>畫廊還沒開放，等老師發布。</p></div>
+    <div class="row" style="margin:16px 0"><a class="btn ghost" href="index.html">回我的頁面</a><button id="b-out" class="ghost">登出</button></div>
+  </div>
+</main>
+<div id="toast" class="toast" role="status"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="common.js"></script>
+<script>
+let works=[], open=false, seed=Math.random();
+$("b-login").onclick=async()=>{ try{ await auth.signInWithEmailAndPassword($("l-email").value.trim(),$("l-pw").value); }catch(e){ $("l-err").textContent="登入失敗，請確認 Email 與密碼。"; } };
+$("b-out").onclick=()=>auth.signOut();
+auth.onAuthStateChanged(u=>{
+  $("v-login").classList.toggle("hidden",!!u); $("v-app").classList.toggle("hidden",!u); if(!u) return;
+  sessRef.onSnapshot(s=>{ open=!!(s.exists&&s.data().galleryOpen); render(); });
+  galCol.onSnapshot(q=>{ works=q.docs.map(d=>({uid:d.id,...d.data()})); render(); }, e=>{ $("count").textContent="讀取失敗："+e.message; });
+});
+function h32(s){ let h=0x811c9dc5; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return h; }
+function render(){
+  $("closed").classList.toggle("hidden",open); $("list").classList.toggle("hidden",!open);
+  if(!open){ $("count").textContent=""; return; }
+  const q=($("q").value||"").trim().toLowerCase(), sort=$("sort").value;
+  let list=works.filter(w=>!q || [w.title,w.nick,...Object.values(w.drawn||{})].join(" ").toLowerCase().includes(q));
+  if(sort==="title") list.sort((a,b)=>(a.title||"").localeCompare(b.title||"","zh-Hant"));
+  else if(sort==="nick") list.sort((a,b)=>(a.nick||"").localeCompare(b.nick||"","zh-Hant"));
+  else list.sort((a,b)=>h32(a.uid+seed)-h32(b.uid+seed));
+  $("count").textContent=`${list.length} 篇`;
+  const openSet=new Set([...document.querySelectorAll(".work.open")].map(e=>e.dataset.uid));
+  $("list").innerHTML=list.map(w=>`<div class="card work ${openSet.has(w.uid)?"open":""}" data-uid="${w.uid}">
+    <h3>${esc(w.title)}</h3><div class="nick">${esc(w.nick)}</div>
+    <div class="els">${ORDER.map(k=>w.drawn&&w.drawn[k]?`<span class="${k==="mg"?"mg":""}">${FIELDS[k].k}：${esc(w.drawn[k])}</span>`:"").join("")}</div>
+    <div class="syn">${esc(w.synopsis)}</div><div class="more">${openSet.has(w.uid)?"收合":"展開全文與 AI 評語"}</div>
+    <div class="ai">${w.comment?`<b>AI 評語</b><br>${esc(w.comment)}`:"<b>AI 評語</b><br>（尚無）"}${w.reasons?`<br><span class="small">一句話：${esc(w.reasons)}</span>`:""}</div>
+  </div>`).join("");
+}
+$("list").addEventListener("click",e=>{ const c=e.target.closest(".work"); if(!c) return; c.classList.toggle("open"); c.querySelector(".more").textContent=c.classList.contains("open")?"收合":"展開全文與 AI 評語"; });
+$("q").addEventListener("input",render); $("sort").addEventListener("change",render);
+</script>
+</body>
+</html>

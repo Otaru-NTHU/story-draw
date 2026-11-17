@@ -28,6 +28,7 @@ const sessRef = dbf.collection("sessions").doc(SID);
 const stuCol = sessRef.collection("students");
 const pubCol = sessRef.collection("public");
 const scoreCol = sessRef.collection("scores");
+const galCol = sessRef.collection("gallery");
 
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function $(id){ return document.getElementById(id); }

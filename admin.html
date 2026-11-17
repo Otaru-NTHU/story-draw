@@ -62,6 +62,9 @@
         <h3>4. 揭曉</h3>
         <div class="row"><button id="b-rev3" class="gold">計算前三名，揭曉第 3 名</button><button id="b-rev2" class="gold">揭曉第 2 名</button><button id="b-rev1" class="gold">揭曉第 1 名</button></div>
         <p class="small">投影板會從第 3 名開始，一次疊一張。</p>
+        <h3 style="margin-top:14px">5. 畫廊</h3>
+        <div class="row"><button id="b-gal">發布畫廊</button><button id="b-ungal" class="ghost">下架畫廊</button><a class="btn ghost" href="gallery.html" target="_blank" rel="noopener">開畫廊</a></div>
+        <p class="small">把每個人的作品名、暱稱、元素、大綱、AI 評語複製到全班可讀的區域；分數與個資不會過去。再按一次＝更新。</p>
       </section>
     </div>
 
@@ -230,6 +233,22 @@ $("b-csv").onclick=()=>{
   const rows=students.map(s=>{ const el=s.elements||{},d=s.drawn||{},sc=scores[s.uid]||{}; return [s.nick,s.sid,s.name,s.email,...ORDER.map(k=>el[k]||""),...ORDER.map(k=>d[k]||""),s.story&&s.story.title||"",s.story&&s.story.synopsis||"",sc.score==null?"":sc.score,sc.comment||""]; });
   const csv="﻿"+[h,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download=SID+"_全班.csv"; a.click();
+};
+
+/* ---------- 畫廊 ---------- */
+$("b-gal").onclick=async()=>{
+  const list=students.filter(s=>s.story&&s.story.title);
+  if(!list.length){ toast("還沒有人交大綱"); return; }
+  let n=0; for(let i=0;i<list.length;i+=50){
+    const batch=dbf.batch();
+    list.slice(i,i+50).forEach(s=>{ const sc=scores[s.uid]||{}; batch.set(galCol.doc(s.uid),{nick:s.nick||"",title:s.story.title,synopsis:s.story.synopsis||"",drawn:s.drawn||{},comment:sc.comment||"",reasons:sc.reasons||"",publishedAt:firebase.firestore.FieldValue.serverTimestamp()}); n++; });
+    await batch.commit();
+  }
+  await setSess({galleryOpen:true}); log(`畫廊發布 ${n} 件`); toast(`畫廊已發布 ${n} 件`);
+};
+$("b-ungal").onclick=async()=>{
+  if(!window.confirm("下架畫廊？（資料不刪，只是學生看不到）")) return;
+  await setSess({galleryOpen:false}); log("畫廊已下架"); toast("已下架");
 };
 
 /* ---------- 揭曉 ---------- */
